@@ -10,6 +10,7 @@ Your music, apps, files and alerts in one glass capsule at the top of your scree
 
 [![Latest release](https://img.shields.io/github/v/release/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Version&color=3b82f6&labelColor=1c1a2e)](../../releases/latest)
 [![Stars](https://img.shields.io/github/stars/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Stars&color=f472b6&labelColor=1c1a2e&logo=github&logoColor=white)](../../stargazers)
+[![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-ff5e5b?style=for-the-badge&labelColor=1c1a2e&logo=kofi&logoColor=white)](https://ko-fi.com/binamer)
 
 ![Meet Nova Island](promo/en/01-hero.png)
 
@@ -62,6 +63,15 @@ npm install
 npm start          # run it
 npm run dist       # build the installer into dist/
 ```
+
+## Support Nova Island ☕
+
+Nova Island is free, with no ads and no tracking, and it always will be. If it makes your day a little better, you can buy us a coffee:
+
+- **Ko-fi** (cards, PayPal): [ko-fi.com/binamer](https://ko-fi.com/binamer)
+- **InstaPay** (Egypt): [Send via InstaPay](https://ipn.eg/S/binamerbm/instapay/38txJO)
+
+Stars ⭐ and sharing it with a friend help a lot too.
 
 ## License
 

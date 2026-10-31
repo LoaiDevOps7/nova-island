@@ -1,0 +1,67 @@
+{
+  "name": "nova-island",
+  "version": "1.2.0",
+  "description": "A living island for your Windows desktop",
+  "main": "nova.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "author": "AmerTech",
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.17.0"
+  },
+  "build": {
+    "appId": "com.dynamicnova.app",
+    "productName": "Nova Island",
+    "copyright": "Copyright © 2026 Nova Island by AmerTech",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "build/icon.png",
+      "build/icon.ico",
+      "!promo/**",
+      "!dist/**",
+      "!*.cmd",
+      "!setup-log.txt",
+      "!**/*.map",
+      "!helper/*.cs",
+      "!helper/*.cmd"
+    ],
+    "asarUnpack": [
+      "helper/nova-helper.exe"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico",
+      "executableName": "Nova Island"
+    },
+    "nsis": {
+      "oneClick": false,
+      "license": "LICENSE",
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nova Island",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "Nova Island ${version} portable.exe"
+    }
+  },
+  "dependencies": {
+    "node-ical": "^0.27.3"
+  }
+}

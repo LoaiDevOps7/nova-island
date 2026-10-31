@@ -3,7 +3,7 @@
 (() => {
   let downAt = 0;
 
-  const label = (n) => (n.link === 'wifi' ? `Wi-Fi · ${n.ssid}${n.signal ? ` ${n.signal}%` : ''}` : n.link === 'ethernet' ? 'Ethernet' : 'Offline');
+  const label = (n) => (n.link === 'wifi' ? 'Wi-Fi' : n.link === 'ethernet' ? 'Ethernet' : 'Offline');
   const ago = (ms) => {
     const m = Math.round(ms / 60000);
     return m < 1 ? 'after a few seconds' : m < 60 ? `after ${m} min` : `after ${Math.floor(m / 60)} h ${m % 60} min`;
@@ -31,8 +31,8 @@
       showToast('net-on', 'Back online', gone ? ago(gone) : label(n), 0, 3500);
       note('📶', `Back online ${gone ? ago(gone) : ''}`.trim());
       downAt = 0;
-    } else if (n.link === 'wifi' && n.ssid && n.ssid !== p.ssid) {
-      showToast('net-on', `Connected to ${n.ssid}`, n.signal ? `${n.signal}%` : '', 0, 3000);
+    } else if (n.link === 'wifi' && p.link !== 'wifi' && n.internet) {
+      showToast('net-on', 'Connected to Wi-Fi', '', 0, 3000);
     }
   }
 

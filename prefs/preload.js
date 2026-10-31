@@ -22,4 +22,5 @@ contextBridge.exposeInMainWorld('prefs', {
   calendar: () => ipcRenderer.invoke('cal-get'),
   setCalendar: (url) => ipcRenderer.invoke('cal-set', url),
   onCalendar: on('calendar'),
+  openSupport: (key) => ipcRenderer.send('open-support', key),
 });

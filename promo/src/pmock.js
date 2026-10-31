@@ -11,13 +11,13 @@
     netToasts: true, smartClipboard: true, water: true, waterEvery: 60, waterGoal: 8, meetings: true, privacyDots: true,
     clipboardHistory: true, kbdToast: true, capsToast: true, screenshotToast: true, addrIsland: true,
   };
-  const general = { shown: true, vertical: true, startWithWindows: true };
+  const general = { shown: true, vertical: true, startWithWindows: true, version: '1.3.1' };
   const noop = () => {};
   window.prefs = {
     features: async () => ({ ...features }), general: async () => ({ ...general }),
     setFeatures: noop, resetFeatures: noop, onFeatures: noop, setGeneral: noop, onGeneral: noop,
     window: noop, previewReminder: noop,
-    bridgeStatus: async () => ({ state: 'ok', detail: '' }), openLog: noop, copyReport: async () => true,
+    bridgeStatus: async () => ({ state: 'ok', detail: '' }), openLog: noop, copyReport: async () => true, openSupport: noop,
     location: async () => ({ mode: 'auto', name: 'Giza' }), searchCity: async () => [], setLocation: noop, onLocation: noop,
     calendar: async () => ({ events: [], error: '', updated: 0, hasUrl: false }), setCalendar: async () => ({ ok: true }), onCalendar: noop,
   };

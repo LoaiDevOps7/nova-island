@@ -90,7 +90,9 @@ $('#rm-preview').addEventListener('click', () => api.previewReminder());
 function showGeneral(g) {
   $$('[data-general]').forEach((el) => { el.checked = !!g[el.dataset.general]; });
   $$('[data-orient]').forEach((b) => b.setAttribute('aria-checked', String((b.dataset.orient === 'v') === !!g.vertical)));
+  if (g.version) $('#version').textContent = `Version ${g.version}`;
 }
+$$('[data-support]').forEach((b) => b.addEventListener('click', () => api.openSupport(b.dataset.support)));
 $$('[data-general]').forEach((el) => el.addEventListener('change', () => {
   api.setGeneral(el.dataset.general, el.checked);
   saved();

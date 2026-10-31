@@ -763,7 +763,7 @@ ipcMain.on('context-menu', () => appMenu().popup({ window: win }));
 // --- Settings window ---
 // General options live in main (position, startup); feature switches live in features.js.
 function generalState() {
-  return { shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows() };
+  return { shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows(), version: app.getVersion() };
 }
 function notifyGeneral() {
   prefsWindow.send('general', generalState());
@@ -777,6 +777,15 @@ ipcMain.on('features-set', (_e, patch) => features.set(patch));
 ipcMain.on('features-reset', () => features.reset());
 ipcMain.on('reminder-preview', () => send('reminder-now'));
 ipcMain.handle('general-get', () => generalState());
+// Settings > Support: the page names a link, main holds the addresses
+const SUPPORT_LINKS = {
+  kofi: 'https://ko-fi.com/binamer',
+  instapay: 'https://ipn.eg/S/binamerbm/instapay/38txJO',
+  github: 'https://github.com/NOVA-TECH-KIT/nova-island',
+};
+ipcMain.on('open-support', (_e, key) => {
+  if (Object.hasOwn(SUPPORT_LINKS, key)) shell.openExternal(SUPPORT_LINKS[key]);
+});
 ipcMain.handle('bridge-status', () => bridgeStatus());
 ipcMain.on('open-log', () => {
   if (log.logPath() && fs.existsSync(log.logPath())) shell.openPath(log.logPath());

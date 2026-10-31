@@ -31,6 +31,7 @@ const DEFAULTS = {
   dlToasts: true,
   // window
   hideFullscreen: true,
+  autoUpdate: true, // download new versions from GitHub and offer a restart on the island
   addrIsland: true, // take the right third of the browser's address bar
   // System tab
   clipboardHistory: true,

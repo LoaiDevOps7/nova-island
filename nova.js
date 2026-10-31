@@ -24,6 +24,7 @@ const privacy = require('./privacy');
 const calendar = require('./calendar');
 const network = require('./network');
 const prefsWindow = require('./prefs-window');
+const updater = require('./updater');
 
 // Keep our own windows (the mini player) out of Windows' media sessions, so the island and
 // the per-app commands keep targeting the browser tab rather than the mini player.
@@ -770,6 +771,7 @@ function notifyGeneral() {
 ipcMain.on('open-settings', () => prefsWindow.open());
 // the island page reports once all its scripts ran (an early error would stop it before this)
 ipcMain.on('island-ready', () => log.info('island ready'));
+ipcMain.on('update-install', () => updater.install());
 ipcMain.handle('features-get', () => features.get());
 ipcMain.on('features-set', (_e, patch) => features.set(patch));
 ipcMain.on('features-reset', () => features.reset());
@@ -844,6 +846,7 @@ ipcMain.on('general-set', (_e, key, value) => {
   notifyGeneral();
 });
 let prayerCalc = `${features.get().asrHanafi}|${features.get().hijriAdjust}`;
+let autoUpdate = features.get().autoUpdate;
 features.onChange((f) => {
   if (!f.addrIsland && omni) {
     omni = null;
@@ -860,6 +863,10 @@ features.onChange((f) => {
   downloads.setEnabled(f.downloads);
   privacy.setEnabled(f.privacyDots);
   network.setEnabled(f.netToasts);
+  if (f.autoUpdate !== autoUpdate) {
+    autoUpdate = f.autoUpdate;
+    updater.setEnabled(autoUpdate);
+  }
   if (!f.clipboardHistory) system.clearClips();
   updateVisibility();
 });
@@ -930,6 +937,7 @@ app.whenReady().then(() => {
   downloads.start(send, features.get().downloads);
   privacy.start(send, features.get().privacyDots);
   network.start(send, features.get().netToasts);
+  updater.start(send, autoUpdate);
   calendar.start((ch, data) => {
     send(ch, data);
     prefsWindow.send(ch, data);

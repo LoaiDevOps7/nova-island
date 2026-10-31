@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld('nova', {
   network: () => ipcRenderer.invoke('net-get'),
   onShotSaved: on('shot-saved'),
   shotToShelf: () => ipcRenderer.send('shot-to-shelf'),
+  onUpdate: on('update'),
+  installUpdate: () => ipcRenderer.send('update-install'),
   calendar: () => ipcRenderer.invoke('cal-get'),
   openMeeting: (link) => ipcRenderer.send('open-meeting', link),
   downloads: {

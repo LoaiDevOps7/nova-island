@@ -27,6 +27,11 @@ Title, artwork and live waveforms of whatever is playing, plus a floating mini p
 
 ![Browser](promo/en/03-browser.png)
 
+### Never miss a prayer
+Prayer times with a heads-up before the adhan, plus dhikr, du'a and Qur'an verses in the KFGQPC Hafs script, as often as you choose.
+
+![Prayer](promo/en/06-faith.png)
+
 ### Downloads, at a glance
 Progress, speed and time left while you work, with IDM Nova — pause, resume or open a file in one click.
 
@@ -36,11 +41,6 @@ Progress, speed and time left while you work, with IDM Nova — pause, resume or
 Copy a link, a sum or a color and the island knows what to do with it. It also lets you know when an app turns on your mic or camera.
 
 ![Smart](promo/en/05-smart.png)
-
-### Never miss a prayer
-Prayer times with a heads-up before the adhan, plus dhikr, du'a and Qur'an verses in the KFGQPC Hafs script, as often as you choose.
-
-![Prayer](promo/en/06-faith.png)
 
 ### Your island, your way
 Turn on only what you need from one simple settings window. Vertical on the screen edge, hides in full screen, starts with Windows.

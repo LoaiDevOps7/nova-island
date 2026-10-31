@@ -8,7 +8,6 @@ Your music, apps, files and alerts in one glass capsule at the top of your scree
 
 [**Download for Windows**](../../releases/latest) · Free and open source (GPL v3)
 
-[![Downloads](https://img.shields.io/github/downloads/NOVA-TECH-KIT/nova-island/total?style=for-the-badge&label=Downloads&color=7c5cff&labelColor=1c1a2e&logo=windows&logoColor=white)](../../releases)
 [![Latest release](https://img.shields.io/github/v/release/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Version&color=3b82f6&labelColor=1c1a2e)](../../releases/latest)
 [![Stars](https://img.shields.io/github/stars/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Stars&color=f472b6&labelColor=1c1a2e&logo=github&logoColor=white)](../../stargazers)
 

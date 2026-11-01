@@ -4,11 +4,13 @@ const { BrowserWindow, ipcMain } = require('electron');
 
 let win = null;
 
-function open() {
+// page: open the window on that page (a news link, "Get plugin")
+function open(page) {
   if (win && !win.isDestroyed()) {
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
+    if (page) send('show-page', page);
     return;
   }
   win = new BrowserWindow({
@@ -30,7 +32,10 @@ function open() {
   win.setMenu(null);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.loadFile(path.join(__dirname, 'prefs', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => {
+    win.show();
+    if (page) send('show-page', page);
+  });
   win.on('closed', () => { win = null; });
 }
 

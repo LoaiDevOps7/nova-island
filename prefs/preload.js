@@ -26,4 +26,13 @@ contextBridge.exposeInMainWorld('prefs', {
   downloadFolders: () => ipcRenderer.invoke('dl-folders'),
   addDownloadFolder: () => ipcRenderer.invoke('dl-folder-add'),
   removeDownloadFolder: (p) => ipcRenderer.invoke('dl-folder-remove', p),
+  plugins: () => ipcRenderer.invoke('plugins-list'),
+  onPlugins: on('plugins-list'),
+  onPluginProgress: on('plugin-progress'),
+  installPlugin: (id) => ipcRenderer.invoke('plugin-install', id),
+  installPluginFile: () => ipcRenderer.invoke('plugin-install-file'),
+  removePlugin: (id) => ipcRenderer.send('plugin-remove', id),
+  enablePlugin: (id, on) => ipcRenderer.send('plugin-enable', id, on),
+  pluginSet: (id, key, value) => ipcRenderer.send('plugin-setting', id, key, value),
+  onShowPage: on('show-page'),
 });

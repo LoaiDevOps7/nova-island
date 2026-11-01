@@ -30,6 +30,7 @@
       <a href="#faith" data-page="faith"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Prayer &amp; Dhikr</a>
       <a href="#alerts" data-page="alerts"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Alerts &amp; Privacy</a>
       <a href="#connections" data-page="connections"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Connections</a>
+      <a href="#plugins" data-page="plugins"><svg viewBox="0 0 24 24"><path d="M19.4 13.6a2.4 2.4 0 1 0 0-3.2H18V7a1 1 0 0 0-1-1h-3.4V4.6a2.4 2.4 0 1 0-3.2 0V6H7a1 1 0 0 0-1 1v3.4H4.6a2.4 2.4 0 1 0 0 3.2H6V17a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3.4Z"/></svg>Plugins</a>
       <a href="#support" data-page="support"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>Support</a>
       <p class="side-foot"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> opens the island<br><span id="version"></span></p>
     </nav>
@@ -50,10 +51,27 @@
                 <button role="radio" data-orient="v">Vertical</button>
               </div>
             </div>
-            <label class="row"><div class="txt"><b>Browser address bar</b><small>Only from its default place at the top</small></div><input type="checkbox" class="sw" data-feature="addrIsland"></label>
+            <div class="row"><div class="txt"><b>In the browser</b><small id="browser-hint"></small></div>
+              <div class="seg" role="radiogroup" aria-label="In the browser">
+                <button role="radio" data-browser="addr">Address bar</button>
+                <button role="radio" data-browser="stay">Stay in place</button>
+              </div>
+            </div>
             <label class="row"><b>Hide in full screen</b><input type="checkbox" class="sw" data-feature="hideFullscreen"></label>
             <label class="row"><b>Auto-update</b><input type="checkbox" class="sw" data-feature="autoUpdate"></label>
             <div class="row"><b>Position</b><button class="btn" data-general-action="resetPosition">Reset</button></div>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Performance</h2>
+          <div class="card">
+            <label class="row"><div class="txt"><b>Remove blur</b><small>A solid island; the screen is not captured</small></div><input type="checkbox" class="sw" data-feature="noBlur"></label>
+            <label class="row"><b>Remove animations</b><input type="checkbox" class="sw" data-feature="noAnimations"></label>
+            <label class="row" data-needs="!noBlur"><div class="txt"><b>Freeze glass while closed</b><small>The glass refreshes only while the island is open</small></div><input type="checkbox" class="sw" data-feature="glassFreeze"></label>
+            <label class="row" id="saver-row"><div class="txt"><b>Battery saver</b><small id="saver-note">Turns all three on when the battery runs low</small></div><input type="checkbox" class="sw" data-feature="batterySaver"></label>
+            <div class="row sub" data-needs="batterySaver"><b>Below</b>
+              <div class="stepper" data-num="batterySaverAt" data-steps="10,15,20,25,30,40,50,60,70,80,90,100" data-unit="%"><button data-dir="-1" aria-label="Less">−</button><output></output><button data-dir="1" aria-label="More">+</button></div>
+            </div>
           </div>
         </div>
         <div class="group">
@@ -75,7 +93,7 @@
         <div class="group">
           <h2>Tabs</h2>
           <div class="chips">
-            <label class="chip"><input type="checkbox" data-feature="tabMedia" data-tab><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b>Music</b></label>
+            <label class="chip"><input type="checkbox" data-feature="tabMedia" data-tab><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><b>Media</b></label>
             <label class="chip"><input type="checkbox" data-feature="tabApps" data-tab><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><b>Apps</b></label>
             <label class="chip"><input type="checkbox" data-feature="tabShelf" data-tab><svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg><b>Shelf</b></label>
             <label class="chip"><input type="checkbox" data-feature="tabPrayer" data-tab><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><b>Prayer</b></label>
@@ -187,6 +205,7 @@
             <label class="row"><b>Battery</b><input type="checkbox" class="sw" data-feature="battery"></label>
             <label class="row"><b>Keyboard language</b><input type="checkbox" class="sw" data-feature="kbdToast"></label>
             <label class="row"><b>Caps Lock</b><input type="checkbox" class="sw" data-feature="capsToast"></label>
+            <label class="row"><div class="txt"><b>News from Nova</b><small>Plugins, updates and news from the Nova team. Nothing is sent from your PC.</small></div><input type="checkbox" class="sw" data-feature="news"></label>
             <label class="row"><b>Screenshots</b><input type="checkbox" class="sw" data-feature="screenshotToast"></label>
             <label class="row sub" data-needs="screenshotToast"><div class="txt"><b>Save screenshots to Shelf</b><small>The file stays where it was saved</small></div><input type="checkbox" class="sw" data-feature="shotAutoShelf"></label>
             <div class="row sub2" data-needs="screenshotToast shotAutoShelf"><b>Keep on Shelf</b>
@@ -243,6 +262,23 @@
             </div>
             <div class="row"><b>All settings</b><button class="btn danger" id="reset-all">Reset</button></div>
           </div>
+        </div>
+      </section>
+
+      <!-- PLUGINS -->
+      <section id="plugins" class="page">
+        <h1>Plugins</h1>
+        <p class="lead">Extra features you add only if you want them. Every plugin is checked before it installs.</p>
+        <div class="group">
+          <div class="plug-bar">
+            <div class="seg" role="radiogroup" aria-label="Show">
+              <button role="radio" data-plug-filter="all" aria-checked="true">All</button>
+              <button role="radio" data-plug-filter="installed">Installed</button>
+            </div>
+          </div>
+          <div class="card plug-list" id="plug-list"><div class="row"><small class="val">Loading…</small></div></div>
+          <p class="hint" id="plug-note" hidden></p>
+          <div class="actions"><button class="btn" id="plug-file">Install from a file…</button></div>
         </div>
       </section>
 

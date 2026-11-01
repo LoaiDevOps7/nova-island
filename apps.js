@@ -28,7 +28,12 @@ function scanOnce() {
     ps.stderr.setEncoding('utf8');
     ps.stdout.on('data', (d) => (out += d));
     ps.stderr.on('data', (d) => (errOut += d));
-    ps.on('exit', (code) => {
+    ps.on('error', (err) => {
+      console.error(`[apps] scan failed: ${err.message}`);
+      resolve(false);
+    });
+    // 'close', not 'exit': it comes after the output is fully read, so the JSON is never cut short
+    ps.on('close', (code) => {
       try {
         const list = JSON.parse(out.replace(/^﻿/, '').trim());
         const items = (Array.isArray(list) ? list : [list]).filter((a) => a && a.name && a.id);
@@ -120,9 +125,65 @@ function reorder(ids) {
   persist();
 }
 
-function launch(id) {
-  if (!catalog.some((a) => a.id === id)) return;
+// A click brings the app's open window to the front (the helper looks for it), and only starts
+// the app when none is open; a right-click (fresh) always starts a new one. The bridge in nova.js
+// carries the helper's commands and answers.
+let helperWrite = null;
+const focusWaits = new Map(); // app id -> resolve
+let runningWait = null;
+const clean = (s) => String(s || '').replace(/[\t\r\n]/g, '');
+const exeOf = (a) => (a.kind === 'file' && /\.exe$/i.test(a.icon) ? a.icon : '');
+
+function setHelper(write) {
+  helperWrite = write;
+}
+
+function onHelper(data) {
+  if ('focusapp' in data) {
+    const done = focusWaits.get(data.focusapp);
+    focusWaits.delete(data.focusapp);
+    done?.(data.result);
+  } else if (Array.isArray(data.running) && runningWait) {
+    const done = runningWait;
+    runningWait = null;
+    done(data.running);
+  }
+}
+
+// one command to the helper; null when it doesn't answer in time
+function ask(command, wait, ms) {
+  return new Promise((resolve) => {
+    if (!helperWrite) return resolve(null);
+    const timer = setTimeout(() => resolve(null), ms);
+    wait((v) => { clearTimeout(timer); resolve(v); });
+    helperWrite(command);
+  });
+}
+
+function start(id) {
   spawn('explorer.exe', [`shell:AppsFolder\\${id}`], { detached: true, stdio: 'ignore' }).unref();
+}
+
+async function launch(id, fresh = false) {
+  const a = catalog.find((x) => x.id === id);
+  if (!a) return;
+  if (!fresh) {
+    const key = clean(id);
+    const result = await ask(`focusapp\t${key}\t${clean(exeOf(a))}`, (done) => focusWaits.set(key, done), 1500);
+    if (result === 'focused') return;
+  }
+  start(id);
+}
+
+// pinned apps with a window open (the dot under their icon), asked when the Apps tab opens
+async function running() {
+  if (!pinned?.length || runningWait) return [];
+  const pairs = pinned.map((id) => catalog.find((a) => a.id === id)).filter(Boolean)
+    .map((a) => `${clean(a.id)}\t${clean(exeOf(a))}`);
+  const timeout = setTimeout(() => (runningWait = null), 1600);
+  const ids = await ask(`runningapps\t${pairs.join('\t')}`, (done) => (runningWait = done), 1500);
+  clearTimeout(timeout);
+  return ids || [];
 }
 
 async function init(changed) {
@@ -134,4 +195,4 @@ async function init(changed) {
   persist();
 }
 
-module.exports = { init, list, all, add, remove, reorder, launch, MAX_PINNED };
+module.exports = { init, list, all, add, remove, reorder, launch, running, setHelper, onHelper, MAX_PINNED };

@@ -33,7 +33,14 @@ const DEFAULTS = {
   // window
   hideFullscreen: true,
   autoUpdate: true, // download new versions from GitHub and offer a restart on the island
-  addrIsland: true, // take the right third of the browser's address bar
+  addrIsland: true, // take the right third of the browser's address bar; off: stay in place, clicks pass through
+  // performance (the battery saver turns all three on while the battery is low)
+  noBlur: false, // solid island, no screen capture at all
+  noAnimations: false,
+  glassFreeze: false, // capture the screen only while the island is open
+  batterySaver: false,
+  batterySaverAt: 20, // percent
+  news: true, // plugins, updates and news from the Nova team (news.json on GitHub)
   // System tab
   clipboardHistory: true,
   // copied image / screenshot -> toast; on the Shelf by itself for a while, or "Add to Shelf"
@@ -78,6 +85,7 @@ const DEFAULTS = {
 const RANGES = {
   remindEvery: [1, 240], remindFor: [5, 300], quietFrom: [0, 1439], quietTo: [0, 1439],
   focusMin: [5, 120], breakMin: [1, 60], longBreakMin: [5, 60], hijriAdjust: [-2, 2], waterEvery: [15, 240], waterGoal: [4, 16], shotShelfMinutes: [5, 1440],
+  batterySaverAt: [10, 100],
 };
 
 let values = { ...DEFAULTS, ...pick(settings.load('features.json', {})) };

@@ -102,6 +102,14 @@
   }
 
   function remind(d, now) {
+    for (const k of PRAYERS) {
+      const diff = at(d.today.date, d.today.times[k]) - now;
+      const id = `${d.today.date}-${k}-ev`;
+      if (diff <= 0 && diff > -60000 && !fired.has(id)) {
+        fired.add(id);
+        window.dispatchEvent(new CustomEvent('island:adhan', { detail: { prayer: k } }));
+      }
+    }
     if (!alertsOn) return;
     for (const k of PRAYERS) {
       const t = at(d.today.date, d.today.times[k]);

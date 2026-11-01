@@ -1,5 +1,6 @@
-// Apps tab: pinned launcher grid. Add opens the Start menu picker; Edit (or right-click)
-// enters edit mode where tiles can be removed (×) and dragged to a new position.
+// Apps tab: pinned launcher grid. A click brings the app's open window to the front (or starts
+// it), a right-click opens a new window; a dot marks the apps that are open. Add opens the Start
+// menu picker; Edit enters edit mode where tiles can be removed (×) and dragged to a new position.
 (() => {
   const grid = $('#apps-grid');
   const picker = $('#apps-picker');
@@ -15,6 +16,7 @@
   let catalog = null;
   let editing = false;
   let drag = null;
+  let running = new Set();
 
   const iconHtml = (a) => (a.icon ? `<img src="${a.icon}" alt="" draggable="false">` : esc((a.name || '?').trim()[0] || '?'));
 
@@ -25,7 +27,7 @@
     addBtn.disabled = pinned.length >= MAX_PINNED;
     hint.textContent = editing
       ? 'Drag to reorder · × to remove'
-      : `${pinned.length}/${MAX_PINNED} · Click to open`;
+      : `${pinned.length}/${MAX_PINNED} · Right-click for a new window`;
   }
 
   function setEditing(on) {
@@ -41,9 +43,10 @@
     }
     for (const a of pinned) {
       const b = document.createElement('button');
-      b.className = 'app';
+      b.className = `app${running.has(a.id) ? ' running' : ''}`;
       b.dataset.id = a.id;
-      b.title = a.name;
+      b.title = `${a.name}
+Right-click for a new window`;
       b.innerHTML =
         `<span class="app-ico ${a.icon ? '' : 'letter'}">${iconHtml(a)}</span>` +
         `<span class="app-name">${esc(a.name)}</span>` +
@@ -54,6 +57,14 @@
           return;
         }
         bridge.apps.launch(a.id);
+        setTimeout(refreshRunning, 1500);
+      });
+      b.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (editing) return;
+        bridge.apps.launch(a.id, true);
+        setTimeout(refreshRunning, 1500);
       });
       grid.append(b);
     }
@@ -181,10 +192,18 @@
 
   addBtn.addEventListener('click', openPicker);
   editBtn.addEventListener('click', () => setEditing(!editing));
-  grid.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    if (pinned.length) setEditing(!editing);
-  });
+  grid.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // the dots: asked when the Apps tab is on screen, not all the time
+  async function refreshRunning() {
+    if (lastMode !== 'expanded' || state.tab !== 'apps') return;
+    const ids = new Set(await bridge.apps.running());
+    if ([...ids].sort().join('|') === [...running].sort().join('|')) return;
+    running = ids;
+    grid.querySelectorAll('.app').forEach((el) => el.classList.toggle('running', running.has(el.dataset.id)));
+  }
+  window.addEventListener('island:mode', (e) => { if (e.detail.mode === 'expanded') refreshRunning(); });
+  $('.tab[data-tab="apps"]').addEventListener('click', refreshRunning);
 
   window.addEventListener('island:mode', (e) => {
     if (e.detail.mode !== 'expanded') {

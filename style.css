@@ -606,6 +606,9 @@ svg.s { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: rou
 .dl-line b::after {
   content: ""; position: absolute; top: 0; bottom: 0; left: -30%; width: 30%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
+}
+/* the shine moves only while the line is on screen (it animates "left", a redraw every frame) */
+#island:not(.vertical).downloading.idle .dl-line b::after, #island:not(.vertical).downloading.compact .dl-line b::after {
   animation: dlshine 1.6s linear infinite;
 }
 #island.dl-indet .dl-line b { width: 100%; opacity: .35; }
@@ -986,3 +989,122 @@ svg.s { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: rou
 #island.addr-line:not(.vertical).idle, #island.addr-line:not(.vertical).compact,
 #island.addr-line:not(.vertical).compact.c-wide { --w: 90px; --h: 3px; --r: 2px; }
 #island.addr-line.idle .layer, #island.addr-line.compact .layer, #island.addr-line .dl-line, #island.addr-line .pv-dots { opacity: 0 !important; pointer-events: none; }
+
+/* ============ performance options / battery saver ============ */
+/* Remove blur: a solid island, the screen is not captured at all */
+body.no-blur #bd { display: none; }
+body.no-blur .tint, body.no-blur #island.expanded .tint, body.no-blur #island.peek .tint { background: rgba(20, 20, 26, .97); }
+body.no-blur .clip { background: rgb(20, 20, 26); }
+/* Remove animations: every change happens at once */
+body.no-anim *, body.no-anim *::before, body.no-anim *::after { transition: none !important; animation: none !important; }
+body.no-anim .eq i { transform: scaleY(.55); }
+.l-toast.saver .ico-bolt, .l-vtoast.saver .ico-bolt { display: block; color: var(--yellow); }
+.l-toast.saver .batt, .l-vtoast.saver .v-bar { display: none; }
+.l-toast.saver #t-value { color: var(--yellow); }
+
+/* Apps tab: a dot under the apps that have a window open */
+.app.running::after {
+  content: ""; position: absolute; left: 50%; top: 41px; width: 3px; height: 3px; margin-left: -1.5px; border-radius: 50%;
+  background: rgba(255, 255, 255, .8);
+}
+
+
+/* news from the Nova team: the toast, and its card in the System tab until it is closed */
+.l-toast.news .ico-bell, .l-vtoast.news .ico-bell { display: block; color: rgb(var(--accent-rgb)); }
+.l-toast.news.plugin .ico-bell, .l-toast.news.update .ico-bell, .l-vtoast.news.plugin .ico-bell, .l-vtoast.news.update .ico-bell { display: none; }
+.l-toast.news.plugin .ico-dl, .l-toast.news.update .ico-dl, .l-vtoast.news.plugin .ico-dl, .l-vtoast.news.update .ico-dl { display: block; color: rgb(var(--accent-rgb)); }
+.l-toast.news .batt, .l-vtoast.news .v-bar { display: none; }
+.l-toast.news .t-left { min-width: 0; }
+.l-toast.news #t-label { overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.l-toast.news #t-value:not(:empty) {
+  height: 24px; padding: 0 12px; border-radius: 99px; display: inline-flex; align-items: center;
+  background: rgba(var(--accent-rgb), .9); color: #06111f; font-weight: 700; cursor: pointer;
+}
+.news-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+.news-list:empty { display: none; }
+.news-item {
+  display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 4px 0 9px; border-radius: 9px; cursor: pointer;
+  background: rgba(var(--accent-rgb), .14); font-size: 11.5px; min-width: 0;
+}
+.news-item b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.news-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--accent-rgb)); }
+.news-x { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; color: var(--text-2); }
+.news-x:hover { background: var(--fill-2); }
+.news-x svg { width: 12px; height: 12px; }
+
+/* ============ Quran Radio (plugin) ============ */
+/* collapsed: the island stays as it is (clock, stats, prayer); by the prayer countdown a small
+   radio with moving waves takes the place of "بعد" while the radio plays */
+.i-onair { display: none; align-items: center; gap: 5px; color: #5eead4; }
+.i-onair svg { width: 14px; height: 14px; flex: none; }
+.i-onair .eq { height: 11px; }
+.i-onair .eq i { width: 2px; background: #5eead4; box-shadow: 0 0 5px rgba(94, 234, 212, .55); }
+.i-onair .eq.paused i { animation: eq .9s ease-in-out infinite; transform: none; }
+#island.radio-on .i-onair { display: inline-flex; }
+#island.radio-on .i-after { display: none; }
+.rd-dot {
+  flex: none; width: 6px; height: 6px; border-radius: 50%; background: #ff453a;
+  animation: rd-pulse 1.6s ease-out infinite;
+}
+@keyframes rd-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, .55); } 100% { box-shadow: 0 0 0 6px rgba(255, 69, 58, 0); } }
+
+/* Radio tab: the player's own layout (art 120, title, controls), mirrored */
+#radio { flex: 1; display: flex; align-items: center; gap: 18px; min-width: 0; position: relative; }
+.rd-art-wrap { position: relative; width: 120px; height: 120px; flex: none; }
+.rd-art, .rd-art-glow { position: absolute; inset: 0; border-radius: 24px; }
+.rd-art {
+  display: grid; place-items: center; color: #ecfdf5;
+  background: radial-gradient(120% 90% at 30% 15%, #34d1a0 0%, #13866a 45%, #0b3f33 100%);
+  box-shadow: 0 0 0 .5px rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .18);
+  transition: transform .5s var(--spring);
+}
+.rd-art-glow { background: #1fae84; filter: blur(18px); opacity: .5; transform: translateY(8px) scale(.9); transition: opacity .5s, transform .5s var(--spring); }
+#radio:not(.playing) .rd-art { transform: scale(.88); }
+#radio:not(.playing) .rd-art-glow { opacity: .25; transform: translateY(4px) scale(.8); }
+.rd-glyph { width: 64px; height: 64px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.rd-glyph .fill { fill: currentColor; stroke: none; }
+#radio .m-text { text-align: right; }
+#radio .title { font-size: 16px; }
+.rd-eyebrow { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 11px; font-weight: 700; color: #5eead4; }
+.rd-dot { display: none; }
+#radio.live .rd-dot { display: block; }
+#radio .eq { display: none; }
+#radio.live .eq { display: flex; }
+#radio .eq i { background: #5eead4; box-shadow: 0 0 6px rgba(94, 234, 212, .55); }
+#radio .eq.paused i { animation: eq .9s ease-in-out infinite; transform: none; }
+#radio .eq i:nth-child(2) { animation-duration: .7s; } #radio .eq i:nth-child(3) { animation-duration: 1.1s; }
+#radio .controls { justify-content: flex-start; gap: 10px; }
+.rd-pick { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.rd-pick svg { width: 14px; height: 14px; }
+#radio .vol { margin-right: auto; }
+.rd-i-stop, #radio.playing .rd-i-play { display: none; }
+#radio.playing .rd-i-stop { display: block; }
+#radio .vol { flex: 1; max-width: 230px; }
+.rd-vol-ico { width: 17px; height: 17px; flex: none; color: var(--text-2); }
+.rd-picker input { direction: rtl; }
+/* the station list: a solid sheet over the card, so nothing behind shows through */
+.rd-picker {
+  inset: -4px 0 0; padding: 10px; gap: 10px; background: rgb(18, 18, 24);
+  box-shadow: 0 0 0 .5px rgba(255, 255, 255, .1), 0 12px 30px rgba(0, 0, 0, .5);
+}
+.rd-list { grid-template-columns: repeat(2, 1fr); gap: 4px; padding-left: 2px; }
+.rd-list .pick {
+  justify-content: flex-start; height: 34px; padding: 0 12px; text-align: right;
+  background: rgba(255, 255, 255, .05); font-size: 13px; font-weight: 500; color: var(--text-1);
+}
+.rd-list .pick:hover { background: rgba(255, 255, 255, .1); }
+.rd-list .pick.sel { background: rgba(47, 191, 143, .3); color: #fff; box-shadow: inset 0 0 0 1px rgba(94, 234, 212, .55); }
+.rd-list .pick.sel::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: #5eead4; }
+.rd-list .rd-group { grid-column: 1 / -1; font-size: 11.5px; font-weight: 700; color: #5eead4; padding: 8px 4px 2px; }
+.rd-list .rd-group:first-child { padding-top: 0; }
+.pr-radio { position: absolute; top: 9px; left: 9px; z-index: 1; }
+.pr-radio.on { background: rgba(48, 180, 140, .3); color: #6ee7b7; }
+.pr-radio svg { width: 13px; height: 13px; }
+
+/* ============ no work for what isn't on screen ============ */
+/* the hidden layers stay in place (they fade in and out), so their endless animations would keep
+   the island redrawing every frame; they pause until their layer is the one showing */
+#island .layer .eq i, #island .layer .c-ring .arr { animation-play-state: paused; }
+#island:not(.vertical).idle .l-info .eq i, #island:not(.vertical).compact .l-compact .eq i, #island:not(.vertical).compact .l-compact .c-ring .arr,
+#island.vertical.compact .l-vcompact .eq i, #island.vertical.compact .l-vcompact .c-ring .arr,
+#island.peek .l-peek .eq i, #island.expanded .l-expanded .eq i { animation-play-state: running; }

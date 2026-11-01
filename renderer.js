@@ -31,12 +31,14 @@ const state = {
   reminderUntil: 0, // a dhikr / du'a / verse card is on screen until then (views/reminders.js)
   reminderSize: [500, 140],
   sceneUntil: 0, // the island is a character (views/scene.js) until then
+  radio: { on: false, name: '' }, // Quran Radio (plugin) playing, filled by views/radio.js
+  radioTab: false, // the Quran Radio plugin is installed and on
 };
 const feat = (key) => state.features[key] !== false;
 
 // Good news: sparkles fly out of the island's edges.
 function celebrate(colors = ['#ffd479', '#30d158', '#8ab4ff', '#ff6b9d']) {
-  if (!feat('celebrate') || anchor.vertical) return;
+  if (!feat('celebrate') || anchor.vertical || state.features.noAnimations) return;
   const r = island.getBoundingClientRect();
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
@@ -79,7 +81,8 @@ function timerActive() {
   return state.timer.running || state.timer.remaining > 0;
 }
 
-// What the compact pill shows, by priority: timer, playing media, a running download.
+// What the compact pill shows, by priority: timer, playing media, a running download. (The radio
+// doesn't take the pill: the idle info keeps rotating, with a small "on air" mark by the prayer.)
 function compactKind() {
   if (timerActive()) return 'timer';
   if (feat('mediaPill') && state.media.has && state.media.playing && !state.mediaFront) return 'media';
@@ -179,7 +182,15 @@ bridge.onHover((v) => {
 });
 
 let lastRect = '';
+let lastClickable = false;
 function reportRect() {
+  // something on the island to click (a toast with a button, a reminder or a scene): over the
+  // browser in "Stay in place" it takes the mouse again for as long as it's there
+  const clickable = (lastMode === 'toast' && !!state.toastAction && Date.now() < state.toastUntil) || lastMode === 'reminder' || lastMode === 'scene';
+  if (clickable !== lastClickable) {
+    lastClickable = clickable;
+    bridge.setClickable(clickable);
+  }
   let r = island.getBoundingClientRect();
   // during a scene the card beside the character must take the mouse too
   if (lastMode === 'scene') {
@@ -195,11 +206,19 @@ function reportRect() {
     bridge.setRect(rect);
   }
 }
-setInterval(reportRect, 50);
+// The rect only changes while the island morphs or moves (the frame loop is running then), so it's
+// read 20 times a second during a change and 4 times a second while it sits still; with the
+// performance options on it only has to keep pace with the hover intent.
+const light = () => !!(state.features.noBlur || state.features.noAnimations || state.features.glassFreeze);
+setTimeout(function reportLoop() {
+  reportRect();
+  setTimeout(reportLoop, frameRunning || state.moving ? 50 : light() ? 300 : 250);
+}, 0);
 
 bridge.onToggle(() => {
   state.pinned = !state.pinned;
   if (!state.pinned) state.hover = false;
+  bridge.setPinned(state.pinned);
   render();
 });
 
@@ -340,18 +359,31 @@ function sizeCanvases() {
 sizeCanvases();
 window.addEventListener('resize', sizeCanvases);
 
-bridge.onBackdrop((url) => {
-  const img = new Image();
-  img.onload = () => {
-    const { width: w, height: h } = off;
-    offCtx.filter = 'none';
-    offCtx.drawImage(img, 0, 0, w, h);
-    offCtx.filter = 'blur(22px) saturate(180%) brightness(.92)';
-    offCtx.drawImage(img, -24, -24, w + 48, h + 48);
-    fadeFrames = 10;
-    wake(300);
-  };
-  img.src = url;
+// the backdrop arrives as raw pixels (BGRA, Windows' order): swapped to RGBA, then drawn blurred
+bridge.onBackdrop(async (frame) => {
+  let img;
+  if (typeof frame === 'string') {
+    img = new Image();
+    img.src = frame;
+    await img.decode();
+  } else {
+    const px = new Uint8ClampedArray(frame.bgra.buffer, frame.bgra.byteOffset, frame.bgra.byteLength);
+    for (let i = 0; i < px.length; i += 4) {
+      const b = px[i];
+      px[i] = px[i + 2];
+      px[i + 2] = b;
+      px[i + 3] = 255;
+    }
+    img = await createImageBitmap(new ImageData(px, frame.w, frame.h));
+  }
+  const { width: w, height: h } = off;
+  offCtx.filter = 'none';
+  offCtx.drawImage(img, 0, 0, w, h);
+  offCtx.filter = 'blur(22px) saturate(180%) brightness(.92)';
+  offCtx.drawImage(img, -24, -24, w + 48, h + 48);
+  img.close?.();
+  fadeFrames = 10;
+  wake(300);
 });
 
 const segThumb = $('.seg-thumb');
@@ -366,6 +398,7 @@ function placeSegThumb() {
 // fading in, or the open island (tab thumb, media progress). Idle, it stops completely.
 let frameRunning = false;
 let awakeUntil = 0;
+let lastBd = '';
 function wake(ms = 900) {
   awakeUntil = Math.max(awakeUntil, performance.now() + ms);
   if (!frameRunning) {
@@ -375,8 +408,16 @@ function wake(ms = 900) {
 }
 
 function frame() {
-  const r = island.getBoundingClientRect();
-  bd.style.transform = `translate(${-r.left}px, ${-r.top}px)`;
+  // reading the layout every frame while the island sits open is wasted work; whole pixels, so
+  // the captured glass doesn't tremble at its edges
+  if (state.moving || performance.now() < awakeUntil) {
+    const r = island.getBoundingClientRect();
+    const key = `${Math.round(r.left)},${Math.round(r.top)}`;
+    if (key !== lastBd) {
+      lastBd = key;
+      bd.style.transform = `translate(${-Math.round(r.left)}px, ${-Math.round(r.top)}px)`;
+    }
+  }
   if (fadeFrames > 0) {
     bdCtx.globalAlpha = fadeFrames === 1 ? 1 : 0.22;
     bdCtx.drawImage(off, 0, 0);
@@ -1025,7 +1066,8 @@ function refreshTabs() {
   let changed = false;
   $$('.tab').forEach((b) => {
     const t = b.dataset.tab;
-    const hide = t === 'downloads' ? !state.dl.tab : !feat(TAB_FEATURE[t]);
+    // Downloads shows itself around download activity, Radio only with its plugin
+    const hide = t === 'downloads' ? !state.dl.tab : t === 'radio' ? !state.radioTab : !feat(TAB_FEATURE[t]);
     if (b.hidden !== hide) {
       b.hidden = hide;
       changed = true;
@@ -1041,6 +1083,9 @@ function refreshTabs() {
 
 function applyFeatures(f) {
   state.features = f || {};
+  // performance options (or the battery saver): a solid island, and no movement
+  document.body.classList.toggle('no-blur', state.features.noBlur === true);
+  document.body.classList.toggle('no-anim', state.features.noAnimations === true);
   $$('[data-feat]').forEach((el) => el.classList.toggle('off', !feat(el.dataset.feat)));
   if ($('.info-slide.on')?.classList.contains('off')) showSlide(0);
   refreshTabs();
@@ -1048,6 +1093,7 @@ function applyFeatures(f) {
   window.dispatchEvent(new CustomEvent('island:features', { detail: state.features }));
 }
 bridge.onFeatures(applyFeatures);
+bridge.onSaver((s) => showToast('saver', s.on ? 'Battery saver is on' : 'Battery saver is off', s.pct >= 0 ? `${s.pct}%` : '', 0, 3500));
 bridge.onVisibility((v) => { state.visible = !!v; });
 bridge.features().then(applyFeatures);
 $('#open-settings').addEventListener('click', () => bridge.openSettings());

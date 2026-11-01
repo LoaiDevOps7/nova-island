@@ -229,11 +229,18 @@ function snapshot() {
   return { clips: clips.map((c) => c.slice(0, 300)), weather };
 }
 
+// CPU / RAM every 2 s, every 5 s with the performance options (or the battery saver) on
+let statsTimer = null;
+function setStatsEvery(ms) {
+  clearInterval(statsTimer);
+  statsTimer = setInterval(tickStats, ms);
+}
+
 function start(sender) {
   send = sender;
-  setInterval(tickStats, 2000);
+  setStatsEvery(2000);
   if (weather) send('weather', weather); // the saved one, until a fresh one arrives
   fetchWeather();
 }
 
-module.exports = { start, copyClip, clearClips, snapshot, getLocation, refreshNow, locationInfo, searchCity, setLocation, onLocationChange, lastSmart, writeQuiet, clipboardChanged };
+module.exports = { start, setStatsEvery, copyClip, clearClips, snapshot, getLocation, refreshNow, locationInfo, searchCity, setLocation, onLocationChange, lastSmart, writeQuiet, clipboardChanged };

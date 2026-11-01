@@ -11,7 +11,7 @@
 
   function apply() {
     const lingered = near && Date.now() - nearSince >= DWELL_MS;
-    const show = feat('novaEyes') && !anchor.vertical && lingered && !state.hover && lastMode === 'idle';
+    const show = feat('novaEyes') && !light() && !anchor.vertical && lingered && !state.hover && lastMode === 'idle';
     island.classList.toggle('eyes', !!show);
   }
 
@@ -47,7 +47,7 @@
     setTimeout(() => eyes.classList.remove('blink'), 130);
   }
   (function loop() {
-    if (island.classList.contains('eyes')) {
+    if (island.classList.contains('eyes') && !state.features.noAnimations) {
       blink();
       if (Math.random() < 0.2) setTimeout(blink, 260);
     }

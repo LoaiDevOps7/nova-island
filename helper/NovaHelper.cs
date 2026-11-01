@@ -3,6 +3,8 @@
 // window in front, keyboard layout, Caps Lock.
 // Reads commands on stdin: toggle | next | prev | seek <sec> | vol <0-1> | mute | bright <0-100>
 //   | pauseapp <appId> | playapp <appId> | seekapp <appId> <sec>
+//   | focusapp	<id>	<exe>            -> {"focusapp":id,"result":"focused"|"none"}
+//   | runningapps	<id>	<exe>	...    -> {"running":[ids]}
 // Build: helper/build.cmd (uses the C# compiler that ships with Windows).
 using System;
 using System.Collections.Concurrent;
@@ -94,6 +96,21 @@ static class Win {
       try { return privValue = p == IntPtr.Zero || Marshal.ReadInt32(p) == 0; } finally { GlobalUnlock(h); }
     } finally { CloseClipboard(); }
   }
+  [StructLayout(LayoutKind.Sequential)] struct SYSTEM_POWER_STATUS {
+    public byte ACLineStatus, BatteryFlag, BatteryLifePercent, SystemStatusFlag;
+    public int BatteryLifeTime, BatteryFullLifeTime;
+  }
+  [DllImport("kernel32.dll")] static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS s);
+
+  // battery percent (-1: no battery, e.g. a desktop PC) and whether the charger is plugged in
+  public static void Battery(out int pct, out bool ac) {
+    SYSTEM_POWER_STATUS s;
+    pct = -1; ac = true;
+    if (!GetSystemPowerStatus(out s)) return;
+    ac = s.ACLineStatus != 0;
+    if ((s.BatteryFlag & 128) == 0 && s.BatteryLifePercent <= 100) pct = s.BatteryLifePercent;
+  }
+
   [StructLayout(LayoutKind.Sequential)] struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
   [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO lii);
 
@@ -117,6 +134,16 @@ static class Win {
   public static bool CapsLock() { return (GetKeyState(0x14) & 1) != 0; }
 
   public static IntPtr ForegroundHandle() { return GetForegroundWindow(); }
+
+  // the browser window in front (any browser), for "Stay in place": the island goes see-through
+  // over it. JSON in physical pixels, or "null".
+  static readonly string[] Browsers = { "chrome", "msedge", "brave", "opera", "vivaldi", "firefox" };
+  public static string BrowserJson(string proc, bool fullscreen) {
+    IntPtr h = GetForegroundWindow();
+    RECT r;
+    if (fullscreen || h == IntPtr.Zero || Array.IndexOf(Browsers, (proc ?? "").ToLowerInvariant()) < 0 || !GetWindowRect(h, out r)) return "null";
+    return "{\"x\":" + r.L + ",\"y\":" + r.T + ",\"w\":" + (r.R - r.L) + ",\"h\":" + (r.B - r.T) + "}";
+  }
   public static string ClassOf(IntPtr h) {
     var sb = new StringBuilder(64);
     GetClassName(h, sb, 64);
@@ -253,6 +280,7 @@ static class Program {
 
   static void Handle(string cmd) {
     Match m;
+    if (cmd.StartsWith("focusapp	") || cmd.StartsWith("runningapps	")) { AppCommand(cmd); return; }
     if ((m = AppCmd.Match(cmd)).Success) {
       var t = Find(m.Groups[2].Value);
       if (t != null) Await(m.Groups[1].Value == "pauseapp" ? t.TryPauseAsync() : t.TryPlayAsync());
@@ -280,6 +308,29 @@ static class Program {
     if (cmd == "toggle") Await(s.TryTogglePlayPauseAsync());
     else if (cmd == "next") Await(s.TrySkipNextAsync());
     else if (cmd == "prev") Await(s.TrySkipPreviousAsync());
+  }
+
+  static string JsonStr(string s) {
+    return new Json().Add("s", s).ToString().Substring(5).TrimEnd('}');
+  }
+
+  // Apps tab: focus an app's open window, or list which pinned apps are running
+  static void AppCommand(string cmd) {
+    var parts = cmd.Split('	');
+    if (parts[0] == "focusapp") {
+      string id = parts.Length > 1 ? parts[1] : "", exe = parts.Length > 2 ? parts[2] : "";
+      string result = "none";
+      try { if (id != "") result = AppWindows.Focus(id, exe); } catch { }
+      outw.WriteLine(new Json().Add("focusapp", id).Add("result", result).ToString());
+      return;
+    }
+    var apps = new System.Collections.Generic.List<string[]>();
+    for (int i = 1; i < parts.Length; i += 2) apps.Add(new[] { parts[i], i + 1 < parts.Length ? parts[i + 1] : "" });
+    var on = new System.Collections.Generic.List<string>();
+    try { on = AppWindows.Running(apps); } catch { }
+    var items = new System.Collections.Generic.List<string>();
+    foreach (var id in on) items.Add(JsonStr(id));
+    outw.WriteLine("{\"running\":[" + string.Join(",", items) + "]}");
   }
 
   // one-shot commands (shell and UI Automation want a single-threaded apartment)
@@ -374,9 +425,11 @@ static class Program {
       try { o.Add("kl", Win.KeyboardLayout()).Add("caps", Win.CapsLock()); } catch { }
       try { long seq = Win.ClipboardSeq(); o.Add("clip", (double)seq).Add("clipPriv", Win.ClipboardPrivate(seq)); } catch { }
       try { o.Add("idle", Win.IdleSeconds()); } catch { }
+      try { int pct; bool ac; Win.Battery(out pct, out ac); o.Add("bat", pct).Add("ac", ac); } catch { }
       string fgProc = "";
       try { string t; Win.Foreground(out fgProc, out t); o.Add("fgProc", fgProc).Add("fgTitle", t); } catch { }
       try { o.Raw("omni", AddressBar.Json(Win.ForegroundHandle(), fgProc, Win.IsFullscreen())); } catch { o.Raw("omni", "null"); }
+      try { o.Raw("browser", Win.BrowserJson(fgProc, Win.IsFullscreen())); } catch { o.Raw("browser", "null"); }
 
       try { outw.WriteLine(o.ToString()); } catch (IOException) { return 0; }
     }

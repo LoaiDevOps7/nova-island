@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src https://*.radiojar.com http://*.radiojar.com https://qurango.net https://*.qurango.net">
   <title>Nova Island</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -52,7 +52,7 @@
             <b id="i-rmd-name" class="i-strong" lang="ar"></b>
             <span id="i-rmd-time" class="i-soft"></span>
           </div>
-          <div class="side"><span class="i-soft" lang="ar">بعد</span><b id="i-rmd-left" class="i-strong"></b></div>
+          <div class="side"><span class="i-onair" title="Quran Radio"><svg class="s" viewBox="0 0 24 24"><path d="M4 9.5 18 4"/><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg><span class="eq"><i></i><i></i><i></i><i></i></span></span><span class="i-soft i-after" lang="ar">بعد</span><b id="i-rmd-left" class="i-strong"></b></div>
         </div>
         <div class="info-slide pr-slide" data-feat="slidePrayer" hidden>
           <div class="side">
@@ -60,7 +60,7 @@
             <b id="i-pr-name" class="i-strong" lang="ar"></b>
             <span id="i-pr-time" class="i-soft"></span>
           </div>
-          <div class="side"><span class="i-soft" lang="ar">بعد</span><b id="i-pr-left" class="i-strong"></b></div>
+          <div class="side"><span class="i-onair" title="Quran Radio"><svg class="s" viewBox="0 0 24 24"><path d="M4 9.5 18 4"/><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg><span class="eq"><i></i><i></i><i></i><i></i></span></span><span class="i-soft i-after" lang="ar">بعد</span><b id="i-pr-left" class="i-strong"></b></div>
         </div>
       </div>
 
@@ -190,8 +190,11 @@
           <div class="chip"><span class="dot"></span><span id="x-app-name">Idle</span></div>
           <nav class="seg" role="tablist" aria-label="Views">
             <span class="seg-thumb" aria-hidden="true"></span>
-            <button role="tab" data-tab="media" class="tab" aria-label="Music">
-              <svg class="s" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>Music</span>
+            <button role="tab" data-tab="media" class="tab" aria-label="Media">
+              <svg class="s" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>Media</span>
+            </button>
+            <button role="tab" data-tab="radio" class="tab" aria-label="Quran Radio" hidden>
+              <svg class="s" viewBox="0 0 24 24"><path d="M4 9.5 18 4"/><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg><span>Radio</span>
             </button>
             <button role="tab" data-tab="apps" class="tab" aria-label="Apps">
               <svg class="s" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Apps</span>
@@ -278,6 +281,49 @@
           </div>
         </section>
 
+        <!-- QURAN RADIO (plugin): its own tab, only while the plugin is installed and on -->
+        <section id="v-radio" class="view" role="tabpanel">
+          <!-- Quran Radio (plugin): live stations the island plays itself; laid out like the player,
+               right to left for its Arabic names -->
+          <div class="radio" id="radio" dir="rtl" lang="ar" hidden>
+            <div class="rd-art-wrap"><div class="rd-art-glow"></div><div class="rd-art"><svg class="rd-glyph" viewBox="0 0 64 64" aria-hidden="true"><path d="M24 23a11 11 0 0 1 16 0M18.5 17.5a19 19 0 0 1 27 0"/><circle cx="32" cy="28.5" r="2.2" class="fill"/><path d="M12 38.5c6.5-3.2 13-3 20 1.6 7-4.6 13.5-4.8 20-1.6v11c-6.5-3.2-13-3-20 1.6-7-4.6-13.5-4.8-20-1.6z"/><path d="M32 40.1v11.1"/></svg></div></div>
+            <div class="m-body">
+              <div class="m-head">
+                <div class="m-text">
+                  <div class="rd-eyebrow"><i class="rd-dot"></i><span id="rd-eyebrow">راديو القرآن</span></div>
+                  <div class="title" id="rd-name"></div>
+                  <div class="sub" id="rd-status"></div>
+                </div>
+                <div class="eq big"><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="controls">
+                <button class="ctl play" id="rd-play" aria-label="Play or stop">
+                  <svg class="rd-i-play" viewBox="0 0 24 24"><path d="M8 5.6v12.8a1 1 0 0 0 1.5.86l10.2-6.4a1 1 0 0 0 0-1.72L9.5 4.74A1 1 0 0 0 8 5.6Z"/></svg>
+                  <svg class="rd-i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.2"/></svg>
+                </button>
+                <button id="rd-pick" class="pill small rd-pick">
+                  <svg class="s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>المحطات
+                </button>
+                <div class="vol" dir="ltr">
+                  <svg class="s ico-vol rd-vol-ico" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path class="w1" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="w2" d="M19 5a10 10 0 0 1 0 14"/><path class="mx" d="m22 9-6 6M16 9l6 6"/></svg>
+                  <div id="rd-vol" class="slider" role="slider" aria-label="Radio volume" aria-valuemin="0" aria-valuemax="100"><b class="fill"><i class="knob"></i></b></div>
+                  <span id="rd-vol-pct" class="vol-pct"></span>
+                </div>
+              </div>
+            </div>
+            <div class="picker rd-picker" id="rd-picker" hidden>
+              <div class="picker-bar">
+                <label class="search">
+                  <svg class="s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  <input id="rd-search" type="text" placeholder="ابحث عن قارئ أو إذاعة" aria-label="Search stations" spellcheck="false">
+                </label>
+                <button id="rd-done" class="pill small">تم</button>
+              </div>
+              <div id="rd-list" class="picker-list rd-list"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- APPS -->
         <section id="v-apps" class="view" role="tabpanel">
           <div class="apps-wrap">
@@ -346,6 +392,7 @@
           <div class="pr">
             <div class="card pr-next">
               <div class="eyebrow">الصلاة القادمة</div>
+              <button id="pr-radio" class="pr-bell pr-radio" hidden title="إذاعة القرآن الكريم"><svg class="s" viewBox="0 0 24 24"><path d="M4 9.5 18 4"/><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="8.5" cy="14.5" r="2.5"/><path d="M14 13h4M14 16h4"/></svg><span>الإذاعة</span></button>
               <div class="pr-name" id="pr-next-name">—</div>
               <div class="pr-count" id="pr-count" dir="ltr">--:--:--</div>
               <div class="pr-at" id="pr-next-time"></div>
@@ -499,6 +546,9 @@
   <script src="views/calendar.js"></script>
   <script src="views/screenshot.js"></script>
   <script src="views/update.js"></script>
+  <script src="views/news.js"></script>
+  <script src="views/radio.js"></script>
+  <script src="views/plugins.js"></script>
   <script src="views/network.js"></script>
   <script src="views/companion.js"></script>
   <script src="views/smartclip.js"></script>

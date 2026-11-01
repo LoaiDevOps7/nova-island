@@ -25,6 +25,8 @@ const calendar = require('./calendar');
 const network = require('./network');
 const prefsWindow = require('./prefs-window');
 const updater = require('./updater');
+const news = require('./news');
+const plugins = require('./plugins');
 
 // Keep our own windows (the mini player) out of Windows' media sessions, so the island and
 // the per-app commands keep targeting the browser tab rather than the mini player.
@@ -380,8 +382,15 @@ function startMedia() {
         bridge.lastLine = Date.now();
         bridge.state = 'ok';
         if (data.error) console.error('[media]', data.error);
+        // answers to commands (focusapp / runningapps) are not media status
+        if ('focusapp' in data || 'running' in data) {
+          apps.onHelper(data);
+          continue;
+        }
         if (typeof data.clip === 'number') onClipboardSeq(data.clip, !!data.clipPriv);
         if ('omni' in data) onOmni(data.omni);
+        if ('browser' in data) onBrowser(data.browser);
+        if (typeof data.bat === 'number') onBattery(data.bat, data.ac !== false);
         if (typeof data.fs === 'boolean' && data.fs !== fullscreenHidden) {
           fullscreenHidden = data.fs;
           updateVisibility();
@@ -502,7 +511,7 @@ function findTabUrl(proc, title) {
     ps.on('error', () => resolve(''));
     ps.stdout.setEncoding('utf8');
     ps.stdout.on('data', (d) => (out += d));
-    ps.on('exit', () => {
+    ps.on('close', () => {
       clearTimeout(timer);
       try {
         const r = JSON.parse(out.replace(/^﻿/, '').trim());
@@ -556,24 +565,28 @@ ipcMain.handle('mini-open', async (_e, req) => {
 // it sits collapsed, and not at all while hidden; an unchanged picture is not re-sent.
 const CAPTURE_ACTIVE_MS = 700;
 const CAPTURE_IDLE_MS = 3000;
+const CAPTURE_FROZEN_MS = 60 * 1000; // "Freeze glass while closed"
+
 let capturing = false;
 let captureTimer = null;
 let lastCaptureKey = '';
 let busyUntil = 0; // shape changed recently
+let screenLocked = false;
 function scheduleCapture(ms) {
   clearTimeout(captureTimer);
   captureTimer = setTimeout(async () => {
     await captureBackdrop();
-    scheduleCapture(active || Date.now() < busyUntil ? CAPTURE_ACTIVE_MS : CAPTURE_IDLE_MS);
+    const p = perf();
+    scheduleCapture(active ? CAPTURE_ACTIVE_MS : p.glassFreeze ? CAPTURE_FROZEN_MS : Date.now() < busyUntil ? CAPTURE_ACTIVE_MS : CAPTURE_IDLE_MS);
   }, ms);
 }
 async function captureBackdrop() {
   // skipped while dragging: a capture blocks the main thread and makes the move stutter
-  if (capturing || drag || !win || win.isDestroyed() || !win.isVisible()) return;
+  if (capturing || drag || screenLocked || !win || win.isDestroyed() || !win.isVisible() || perf().noBlur) return;
   capturing = true;
   try {
     const display = screen.getDisplayMatching(win.getBounds());
-    const scale = 1 / 3;
+    const scale = perfSlow() ? 1 / 4 : 1 / 3;
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: {
@@ -597,13 +610,101 @@ async function captureBackdrop() {
     for (let i = 0; i < bmp.length; i += 997) key += bmp[i].toString(36);
     if (key === lastCaptureKey) return;
     lastCaptureKey = key;
-    send('backdrop', crop.toDataURL());
+    // the raw pixels, not a PNG: no encoding here and no decoding in the island
+    const size = crop.getSize();
+    if (bmp.length === size.width * size.height * 4) send('backdrop', { w: size.width, h: size.height, bgra: bmp });
+    else send('backdrop', crop.toDataURL()); // padded rows (shouldn't happen): the PNG way
   } catch (err) {
     console.error('[backdrop]', err.message);
   } finally {
     capturing = false;
   }
 }
+
+// --- performance options and the battery saver ---
+// The user's own switches (Remove blur, Remove animations, Freeze glass) slow the cursor poll,
+// the CPU/RAM poll and the screen capture. The battery saver turns all three on while on battery
+// below its level, without saving them: the user's own choices come back once it ends. It ends
+// on the charger, or 10 % above the level, so it doesn't flip on and off around it.
+let battery = { pct: -1, ac: true };
+let saverOn = false;
+function perf() {
+  const f = features.get();
+  return { noBlur: f.noBlur || saverOn, noAnimations: f.noAnimations || saverOn, glassFreeze: f.glassFreeze || saverOn };
+}
+const perfSlow = () => Object.values(perf()).some(Boolean);
+function islandFeatures() {
+  return { ...features.get(), ...perf(), saver: saverOn };
+}
+let perfKey = '';
+function applyPerf() {
+  const key = JSON.stringify(perf());
+  if (key === perfKey) return;
+  perfKey = key;
+  system.setStatsEvery(perfSlow() ? 5000 : 2000);
+  send('features', islandFeatures());
+  lastCaptureKey = '';
+  scheduleCapture(300);
+}
+function evalSaver() {
+  const f = features.get();
+  let on = saverOn;
+  if (!f.batterySaver || battery.pct < 0 || battery.ac) on = false;
+  else if (battery.pct <= f.batterySaverAt) on = true;
+  else if (battery.pct >= f.batterySaverAt + 10) on = false;
+  if (on === saverOn) return;
+  saverOn = on;
+  log.info(`battery saver ${on ? 'on' : 'off'} (${battery.pct}%)`);
+  send('saver', { on, pct: battery.pct });
+  applyPerf();
+  notifyGeneral();
+}
+function onBattery(pct, ac) {
+  if (pct === battery.pct && ac === battery.ac) return;
+  const had = battery.pct;
+  battery = { pct, ac };
+  evalSaver();
+  if ((had < 0) !== (pct < 0)) notifyGeneral();
+}
+
+// --- "Stay in place" in the browser (Address bar off) ---
+// While a browser is in front under the island, the island stays where it is and lets the mouse
+// through to the tabs below (it looks the same); Ctrl+Alt+I still opens it.
+let browserRect = null; // the browser window in front, in DIPs
+let ghost = false;
+let ghostOpen = false; // opened with the shortcut over the browser, until it is closed again
+function onBrowser(b) {
+  browserRect = b ? screen.screenToDipRect(null, { x: b.x, y: b.y, width: b.w, height: b.h }) : null;
+  updateGhost();
+}
+function updateGhost() {
+  let over = false;
+  if (!features.get().addrIsland && browserRect && win && !win.isDestroyed() && islandRect.width) {
+    const wb = win.getBounds();
+    const x = wb.x + islandRect.x;
+    const y = wb.y + islandRect.y;
+    const br = browserRect;
+    over = x < br.x + br.width && x + islandRect.width > br.x && y < br.y + br.height && y + islandRect.height > br.y;
+  }
+  if (!over) ghostOpen = false;
+  const on = over && !ghostOpen;
+  if (on === ghost) return;
+  ghost = on;
+  if (on) setActive(false);
+}
+// a toast with a button, a reminder or a scene: clickable over the browser too, while it's there
+let clickable = false;
+ipcMain.on('clickable', (_e, on) => {
+  clickable = !!on;
+  // it's gone: over the browser the island lets the mouse through again (and doesn't open)
+  if (!clickable && ghost) setActive(false);
+});
+ipcMain.on('pinned', (_e, on) => {
+  if (!on && ghostOpen) {
+    ghostOpen = false;
+    updateGhost();
+  }
+});
 
 // --- hover detection with intent ---
 // Forwarded mouse events are unreliable on transparent windows, so poll the cursor.
@@ -618,6 +719,7 @@ let suppressUntilLeave = false;
 ipcMain.on('island-rect', (_e, r) => {
   const resized = r.width !== islandRect.width || r.height !== islandRect.height;
   islandRect = r;
+  updateGhost();
   if (resized) {
     busyUntil = Date.now() + 2000;
     scheduleCapture(120);
@@ -637,7 +739,13 @@ function setActive(on) {
 const NEAR_PX = 260;
 let nearSent = null;
 function sendNear(x, y) {
-  if (!features.get().novaEyes || !islandRect.width) return;
+  if (!features.get().novaEyes || perfSlow() || !islandRect.width) {
+    if (nearSent) {
+      nearSent = null;
+      send('near', null);
+    }
+    return;
+  }
   const dx = Math.round(x - (islandRect.x + islandRect.width / 2));
   const dy = Math.round(y - (islandRect.y + islandRect.height / 2));
   const near = Math.hypot(dx, dy) < NEAR_PX;
@@ -651,12 +759,19 @@ function sendNear(x, y) {
   send('near', nearSent);
 }
 
+// how far the cursor is from the island: far away it is checked 10 times a second, not 25 (it
+// can't reach the island and rest on it for the hover intent in between)
+let cursorFar = false;
+const FAR_PX = 400;
 function pollCursor() {
   if (!win || win.isDestroyed() || !win.isVisible() || drag) return;
   const p = screen.getCursorScreenPoint();
   const b = win.getBounds();
   const x = p.x - b.x;
   const y = p.y - b.y;
+  const fx = Math.max(islandRect.x - x, 0, x - islandRect.x - islandRect.width);
+  const fy = Math.max(islandRect.y - y, 0, y - islandRect.y - islandRect.height);
+  cursorFar = Math.hypot(fx, fy) > FAR_PX;
   sendNear(x, y);
   const pad = active ? 8 : 2;
   const now =
@@ -669,7 +784,7 @@ function pollCursor() {
   if (!now) {
     suppressUntilLeave = false;
     setActive(false);
-  } else if (!active && !suppressUntilLeave && Date.now() - enteredAt >= HOVER_INTENT_MS) {
+  } else if (!active && !suppressUntilLeave && (!ghost || clickable) && Date.now() - enteredAt >= HOVER_INTENT_MS) {
     setActive(true);
   }
 }
@@ -686,7 +801,8 @@ ipcMain.handle('apps-list', () => apps.list());
 ipcMain.handle('apps-all', () => apps.all());
 ipcMain.on('apps-add', (_e, id) => apps.add(id));
 ipcMain.on('apps-remove', (_e, id) => apps.remove(id));
-ipcMain.on('apps-launch', (_e, id) => apps.launch(id));
+ipcMain.on('apps-launch', (_e, id, fresh) => apps.launch(id, !!fresh));
+ipcMain.handle('apps-running', () => apps.running());
 ipcMain.on('apps-reorder', (_e, ids) => apps.reorder(ids));
 
 // --- shelf ---
@@ -814,16 +930,29 @@ ipcMain.on('context-menu', () => appMenu().popup({ window: win }));
 // --- Settings window ---
 // General options live in main (position, startup); feature switches live in features.js.
 function generalState() {
-  return { shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows(), version: app.getVersion() };
+  return {
+    shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows(), version: app.getVersion(),
+    battery: battery.pct, saver: saverOn,
+  };
 }
 function notifyGeneral() {
   prefsWindow.send('general', generalState());
 }
 ipcMain.on('open-settings', () => prefsWindow.open());
+// news: the island reports what it showed or closed, and opens a link main read itself
+ipcMain.on('news-shown', (_e, id) => news.shown(String(id)));
+ipcMain.on('news-dismiss', (_e, id) => news.dismiss(String(id)));
+ipcMain.on('news-open', (_e, id) => openNovaLink(news.linkOf(String(id))));
+function openNovaLink(link) {
+  const m = /^nova:\/\/(plugins|settings)\/([\w-]+)$/.exec(link || '');
+  if (m) prefsWindow.open(m[1] === 'plugins' ? `plugins:${m[2]}` : m[2]);
+  else if (/^https:\/\//.test(link || '')) shell.openExternal(link);
+}
 // the island page reports once all its scripts ran (an early error would stop it before this)
 ipcMain.on('island-ready', () => log.info('island ready'));
 ipcMain.on('update-install', () => updater.install());
 ipcMain.handle('features-get', () => features.get());
+ipcMain.handle('island-features', () => islandFeatures());
 ipcMain.on('features-set', (_e, patch) => features.set(patch));
 ipcMain.on('features-reset', () => features.reset());
 ipcMain.on('reminder-preview', () => send('reminder-now'));
@@ -886,6 +1015,21 @@ ipcMain.handle('dl-folder-add', async (e) => {
   return r.canceled || !r.filePaths[0] ? folderDownloads.folderList() : folderDownloads.addFolder(r.filePaths[0]);
 });
 ipcMain.handle('dl-folder-remove', (_e, p) => folderDownloads.removeFolder(p));
+// plugins (Settings > Plugins, and the island's own controls)
+ipcMain.handle('plugins-active', () => plugins.active());
+ipcMain.handle('plugins-list', () => {
+  plugins.refresh();
+  return plugins.list();
+});
+ipcMain.handle('plugin-install', (_e, id) => plugins.install(String(id)));
+ipcMain.handle('plugin-install-file', async (e) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  const r = await dialog.showOpenDialog(w, { title: 'Install a plugin', properties: ['openFile'], filters: [{ name: 'Nova Island plugin', extensions: ['nvp'] }] });
+  return r.canceled || !r.filePaths[0] ? null : plugins.installFile(r.filePaths[0]);
+});
+ipcMain.on('plugin-remove', (_e, id) => plugins.remove(String(id)));
+ipcMain.on('plugin-enable', (_e, id, on) => plugins.setEnabled(String(id), !!on));
+ipcMain.on('plugin-setting', (_e, id, key, value) => plugins.setSetting(String(id), String(key), value));
 ipcMain.handle('cal-get', () => ({ ...calendar.snapshot(), hasUrl: calendar.hasUrl() }));
 ipcMain.handle('cal-set', (_e, url) => calendar.setUrl(url));
 // only meeting links the calendar itself produced (Meet / Teams / Zoom / Webex, https)
@@ -916,7 +1060,11 @@ ipcMain.on('general-set', (_e, key, value) => {
 });
 let prayerCalc = `${features.get().asrHanafi}|${features.get().hijriAdjust}`;
 let autoUpdate = features.get().autoUpdate;
+let newsOn = features.get().news;
 features.onChange((f) => {
+  evalSaver();
+  applyPerf();
+  updateGhost();
   if (!f.addrIsland && omni) {
     omni = null;
     omniKey = '';
@@ -927,12 +1075,16 @@ features.onChange((f) => {
     prayerCalc = calc;
     prayer.refresh();
   }
-  send('features', f);
+  send('features', islandFeatures());
   prefsWindow.send('features', f);
   downloads.setEnabled(f.downloads);
   downloads.setFolders(f.folderDownloads);
   privacy.setEnabled(f.privacyDots);
   network.setEnabled(f.netToasts);
+  if (f.news !== newsOn) {
+    newsOn = f.news;
+    news.setEnabled(newsOn);
+  }
   if (f.autoUpdate !== autoUpdate) {
     autoUpdate = f.autoUpdate;
     updater.setEnabled(autoUpdate);
@@ -1003,11 +1155,17 @@ app.whenReady().then(() => {
   buildTray();
   startMedia();
   system.start(send);
+  applyPerf(); // saved performance options slow the background work from the start
   prayer.start(send, system.getLocation);
   downloads.start(send, features.get().downloads, features.get().folderDownloads);
   privacy.start(send, features.get().privacyDots);
   network.start(send, features.get().netToasts);
   updater.start(send, autoUpdate);
+  news.start(send, features.get().news);
+  plugins.start((ch, data) => {
+    send(ch, data);
+    prefsWindow.send(ch, data);
+  });
   // waking from sleep or getting the internet back: weather, prayer times and a failed update
   // check catch up at once instead of waiting for their next timer (5 s for Wi-Fi to reconnect)
   let wakeTimer = null;
@@ -1017,19 +1175,40 @@ app.whenReady().then(() => {
       system.refreshNow();
       prayer.retry();
       updater.retrySoon();
+      news.retrySoon();
     }, 5000);
   };
   powerMonitor.on('resume', wake);
+  // locked: nobody sees the island, so no screen capture (and a slow cursor check) until unlocked
+  powerMonitor.on('lock-screen', () => { screenLocked = true; });
+  powerMonitor.on('unlock-screen', () => {
+    screenLocked = false;
+    lastCaptureKey = '';
+    scheduleCapture(300);
+  });
   network.onBack(wake);
   calendar.start((ch, data) => {
     send(ch, data);
     prefsWindow.send(ch, data);
   });
+  apps.setHelper(mediaWrite);
   apps.init(async () => send('apps', await apps.list()));
   shelf.start(async () => send('shelf', await shelf.list()));
-  setInterval(pollCursor, 40);
+  // the poll is cheap but still a wake-up: with the performance options on it runs fast only
+  // while the cursor is on the island (hover intent needs ~280 ms), and slowly while it's hidden
+  (function cursorLoop() {
+    pollCursor();
+    const hidden = !win || win.isDestroyed() || !win.isVisible() || screenLocked;
+    setTimeout(cursorLoop, hidden ? 600 : cursorFar ? 100 : perfSlow() && !inside ? 120 : 40);
+  })();
   scheduleCapture(300);
-  globalShortcut.register('CommandOrControl+Alt+I', () => send('toggle'));
+  globalShortcut.register('CommandOrControl+Alt+I', () => {
+    if (ghost) {
+      ghostOpen = true;
+      updateGhost();
+    }
+    send('toggle');
+  });
   screen.on('display-metrics-changed', () => layout());
   screen.on('display-added', () => layout());
   screen.on('display-removed', () => layout());

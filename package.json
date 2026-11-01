@@ -1,6 +1,6 @@
 {
   "name": "nova-island",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A living island for your Windows desktop",
   "main": "nova.js",
   "scripts": {
@@ -36,7 +36,15 @@
       "!setup-log.txt",
       "!**/*.map",
       "!helper/*.cs",
-      "!helper/*.cmd"
+      "!helper/*.cmd",
+      "!.*/**",
+      "!NEXT-RELEASE.md",
+      "!contrib/**",
+      "!keys/**",
+      "!nova-island-plugins/**",
+      "!tools/**",
+      "!scripts/**",
+      "!news.json"
     ],
     "publish": {
       "provider": "github",

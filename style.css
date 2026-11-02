@@ -1020,15 +1020,29 @@ body.no-anim .eq i { transform: scaleY(.55); }
   height: 24px; padding: 0 12px; border-radius: 99px; display: inline-flex; align-items: center;
   background: rgba(var(--accent-rgb), .9); color: #06111f; font-weight: 700; cursor: pointer;
 }
-.news-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
-.news-list:empty { display: none; }
+.bell { position: relative; margin-right: -8px; } /* right beside the gear */
+.bell:hover { transform: none; }
+.bell-dot { position: absolute; top: 4px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--accent-rgb)); display: none; }
+.bell.unread { color: var(--text-1); }
+.bell.unread .bell-dot { display: block; }
+/* the bell's list: no tab of its own, so the tab highlight hides while it is open */
+.seg:not(:has(.tab.active)) .seg-thumb { opacity: 0; }
+.news-view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.news-head { font-size: 12px; color: var(--text-2); padding: 0 4px; }
+.news-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .news-item {
-  display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 4px 0 9px; border-radius: 9px; cursor: pointer;
-  background: rgba(var(--accent-rgb), .14); font-size: 11.5px; min-width: 0;
+  display: flex; align-items: center; gap: 10px; padding: 9px 6px 9px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--fill-1); min-width: 0; transition: background var(--dur-fast);
 }
-.news-item b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.news-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--accent-rgb)); }
-.news-x { flex: none; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; color: var(--text-2); }
+.news-item:hover { background: var(--fill-2); }
+.news-item.unread { background: rgba(var(--accent-rgb), .14); }
+.news-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.news-txt b { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.news-txt small { font-size: 11px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.news-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--accent-rgb)); visibility: hidden; }
+.news-item.unread .news-dot { visibility: visible; }
+.news-empty { padding: 24px 0; text-align: center; font-size: 12px; color: var(--text-3); }
+.news-x { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-2); }
 .news-x:hover { background: var(--fill-2); }
 .news-x svg { width: 12px; height: 12px; }
 

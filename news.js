@@ -19,8 +19,9 @@ let send = () => {};
 let enabled = false;
 let timer = null;
 let items = []; // valid items from the last read
-// shown: ids already on screen once; dismissed: closed with ✕; lastShown: the one-a-day limit
-let seen = { shown: [], dismissed: [], lastShown: 0, ...settings.load('news-seen.json', {}) };
+// shown: ids already on screen once; dismissed: closed with ✕; read: seen in the bell's list or
+// opened; lastShown: the one-a-day limit
+let seen = { shown: [], dismissed: [], read: [], lastShown: 0, ...settings.load('news-seen.json', {}) };
 let failedOnce = '';
 
 const save = () => settings.save('news-seen.json', seen);
@@ -49,9 +50,12 @@ function valid(item) {
   return true;
 }
 
-const card = (i) => ({ id: i.id, type: i.type, title: i.title.slice(0, 120), body: String(i.body || '').slice(0, 240), link: i.link || '' });
+const card = (i) => ({
+  id: i.id, type: i.type, title: i.title.slice(0, 120), body: String(i.body || '').slice(0, 240), link: i.link || '',
+  unread: !seen.read.includes(i.id),
+});
 
-// tell the island: cards it should keep (shown, not closed) and at most one new item a day
+// tell the island: the bell's list (shown, not closed) and at most one new item a day
 function publish() {
   const cards = items.filter((i) => seen.shown.includes(i.id) && !seen.dismissed.includes(i.id)).map(card);
   const next = Date.now() - seen.lastShown >= DAY_MS ? items.find((i) => !seen.shown.includes(i.id)) : null;
@@ -113,9 +117,17 @@ function dismiss(id) {
   save();
   publish();
 }
+// the bell's list was opened, or an item's link
+function markRead(ids) {
+  const add = ids.filter((id) => items.some((i) => i.id === id) && !seen.read.includes(id));
+  if (!add.length) return;
+  seen.read = [...seen.read, ...add].slice(-200);
+  save();
+  publish();
+}
 // the link of an item main itself read and checked, never one from the page
 function linkOf(id) {
   return items.find((i) => i.id === id)?.link || '';
 }
 
-module.exports = { start, setEnabled, retrySoon: () => enabled && read(), shown, dismiss, linkOf };
+module.exports = { start, setEnabled, retrySoon: () => enabled && read(), shown, dismiss, markRead, linkOf };

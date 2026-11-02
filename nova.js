@@ -970,7 +970,11 @@ ipcMain.on('open-settings', () => prefsWindow.open());
 // news: the island reports what it showed or closed, and opens a link main read itself
 ipcMain.on('news-shown', (_e, id) => news.shown(String(id)));
 ipcMain.on('news-dismiss', (_e, id) => news.dismiss(String(id)));
-ipcMain.on('news-open', (_e, id) => openNovaLink(news.linkOf(String(id))));
+ipcMain.on('news-open', (_e, id) => {
+  news.markRead([String(id)]);
+  openNovaLink(news.linkOf(String(id)));
+});
+ipcMain.on('news-read', (_e, ids) => news.markRead(Array.isArray(ids) ? ids.map(String) : []));
 function openNovaLink(link) {
   const m = /^nova:\/\/(plugins|settings)\/([\w-]+)$/.exec(link || '');
   if (m) prefsWindow.open(m[1] === 'plugins' ? `plugins:${m[2]}` : m[2]);
@@ -991,6 +995,9 @@ const SUPPORT_LINKS = {
   instapay: 'https://ipn.eg/S/binamerbm/instapay/38txJO',
   github: 'https://github.com/NOVA-TECH-KIT/nova-island',
   facebook: 'https://www.facebook.com/nova4kit/',
+  // Settings > More by Nova
+  qrnova: 'https://github.com/NOVA-TECH-KIT/qr-nova/releases/latest',
+  'qrnova-src': 'https://github.com/NOVA-TECH-KIT/qr-nova',
 };
 ipcMain.on('open-support', (_e, key) => {
   if (Object.hasOwn(SUPPORT_LINKS, key)) shell.openExternal(SUPPORT_LINKS[key]);

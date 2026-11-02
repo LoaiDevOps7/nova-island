@@ -8,5 +8,5 @@ set "WM=%WINDIR%\System32\WinMetadata"
   -r:"%FW%\System.Runtime.dll" -r:"%FW%\System.Management.dll" -r:"%FW%\System.Xml.dll" -r:"%FW%\System.Core.dll" ^
   -r:"%FW%\Microsoft.CSharp.dll" -r:"%FW%\WPF\UIAutomationClient.dll" -r:"%FW%\WPF\UIAutomationTypes.dll" -r:"%FW%\WPF\WindowsBase.dll" ^
   -r:"%WM%\Windows.Foundation.winmd" -r:"%WM%\Windows.Media.winmd" -r:"%WM%\Windows.Storage.winmd" ^
-  NovaHelper.cs Apps.cs YtUrl.cs AddressBar.cs AppWindows.cs
+  NovaHelper.cs Apps.cs YtUrl.cs AddressBar.cs AppWindows.cs Vlc.cs
 exit /b %errorlevel%

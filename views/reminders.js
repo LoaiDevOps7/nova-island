@@ -72,13 +72,18 @@
     }
     // diacritics and Qur'anic marks (U+064B–065F, U+0670, U+06D6–06ED) add characters but no width
     const len = item.text.replace(/[ً-ٰٟۖ-ۭ]/g, '').length;
-    const fs = len <= 40 ? 30 : len <= 80 ? 26 : 23;
+    let fs = len <= 40 ? 30 : len <= 80 ? 26 : 23;
     const w = anchor.vertical ? V_WIDTH : WIDTH;
-    layer.style.setProperty('--rm-fs', `${fs}px`);
-    measure.style.setProperty('--rm-fs', `${fs}px`);
     measure.style.width = `${w - 44}px`;
     measure.innerHTML = words(item);
+    // long texts (سيد الاستغفار) step the font down until they fit under MAX_H
     // padding 12 + head 24 + gaps 12 + ref 16 + bottom 16
+    for (;;) {
+      measure.style.setProperty('--rm-fs', `${fs}px`);
+      if (fs <= 17 || measure.scrollHeight + 82 <= MAX_H) break;
+      fs -= 2;
+    }
+    layer.style.setProperty('--rm-fs', `${fs}px`);
     const h = Math.min(MAX_H, Math.ceil(measure.scrollHeight) + 82);
     state.reminderSize = [w, h];
     island.style.setProperty('--rw', `${w}px`);

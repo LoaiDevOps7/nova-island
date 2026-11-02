@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('nova', {
   newsShown: (id) => ipcRenderer.send('news-shown', id),
   newsDismiss: (id) => ipcRenderer.send('news-dismiss', id),
   newsOpen: (id) => ipcRenderer.send('news-open', id),
+  newsRead: (ids) => ipcRenderer.send('news-read', ids),
   onPlugins: on('plugins'),
   onPluginProgress: on('plugin-progress'),
   plugins: () => ipcRenderer.invoke('plugins-active'),

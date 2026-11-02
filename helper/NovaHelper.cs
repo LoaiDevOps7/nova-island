@@ -1,5 +1,5 @@
 // Nova Island system bridge, compiled (replaces media.ps1, same protocol).
-// Prints one JSON line about every 500 ms: media session (SMTC), volume, brightness, fullscreen,
+// Prints one JSON line about every 500 ms: media session (SMTC, or VLC: Vlc.cs), volume, brightness, fullscreen,
 // window in front, keyboard layout, Caps Lock.
 // Reads commands on stdin: toggle | next | prev | seek <sec> | vol <0-1> | mute | bright <0-100>
 //   | pauseapp <appId> | playapp <appId> | seekapp <appId> <sec>
@@ -291,6 +291,7 @@ static class Program {
   static double Num(string s) { return double.Parse(s, CultureInfo.InvariantCulture); }
 
   static int bright = -1;
+  static bool vlcShown; // the island is showing VLC, so play/pause/next/prev go to it
 
   static void Handle(string cmd) {
     Match m;
@@ -316,6 +317,7 @@ static class Program {
       Brightness.Set(bright);
       return;
     }
+    if (vlcShown && (cmd == "toggle" || cmd == "next" || cmd == "prev")) { Vlc.Command(cmd); return; }
     var s = mgr == null ? null : mgr.GetCurrentSession();
     if (s == null) return;
     if ((m = Seek.Match(cmd)).Success) { Await(s.TryChangePlaybackPositionAsync((long)(Num(m.Groups[1].Value) * 10000000))); return; }
@@ -403,7 +405,25 @@ static class Program {
 
       var o = new Json();
       var s = mgr == null ? null : mgr.GetCurrentSession();
-      if (s != null) {
+      // VLC (no media session): shown while it plays and the session isn't playing,
+      // or paused with no session at all
+      bool vlcPlaying = false;
+      vlcShown = false;
+      try {
+        if (Vlc.Find()) {
+          vlcPlaying = Vlc.Playing();
+          var si = s == null ? null : s.GetPlaybackInfo();
+          bool sessionPlaying = si != null && si.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+          vlcShown = vlcPlaying ? !sessionPlaying : s == null;
+        }
+      } catch { }
+      if (vlcShown) {
+        o.Add("has", true).Add("title", Vlc.Title).Add("artist", "").Add("album", "")
+         .Add("app", "vlc.exe").Add("playing", vlcPlaying).Add("pos", 0).Add("dur", 0);
+        string key = Vlc.Title + "||vlc.exe";
+        if (key != lastKey) { lastKey = key; o.Add("thumb", ""); }
+        thumbOk = true;
+      } else if (s != null) {
         var props = Await(s.TryGetMediaPropertiesAsync());
         var info = s.GetPlaybackInfo();
         var tl = s.GetTimelineProperties();

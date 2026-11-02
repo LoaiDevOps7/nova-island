@@ -6,5 +6,14 @@
     "body": "Beautiful QR codes in seconds. Free and open source. Click to download.",
     "link": "https://github.com/NOVA-TECH-KIT/qr-nova/releases/latest",
     "sig": "UssCDvPMYTO1wAENYCkrJ2sz+BRzO39cBH3RSKu9ez6G0PuDWt/vfb3tNWSAkmLh3ylj/j6CARhHSFwwuJk7AQ=="
+  },
+  {
+    "id": "quran-radio-plugin",
+    "type": "plugin",
+    "title": "New plugin: Quran Radio",
+    "body": "Live Qur'an radio on the island: Cairo, Saudi and 170+ reciters. Free. Click to install.",
+    "link": "nova://plugins/quran-radio",
+    "minVersion": "1.5.0",
+    "sig": "n7q54rc89XzdNnwn4tjBb2rh3A/jbjyg5HOQXtHMPXuY4DgOEvP84t05+GUlM6L2qtW9xnvD5l4jYBCuFWlbBQ=="
   }
 ]

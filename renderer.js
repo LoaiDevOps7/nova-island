@@ -1086,6 +1086,9 @@ function applyFeatures(f) {
   // performance options (or the battery saver): a solid island, and no movement
   document.body.classList.toggle('no-blur', state.features.noBlur === true);
   document.body.classList.toggle('no-anim', state.features.noAnimations === true);
+  // the island's theme (themes.css); a theme without glass needs no backdrop
+  document.body.dataset.theme = state.features.theme || 'original';
+  document.body.classList.toggle('th-solid', !getComputedStyle(document.body).getPropertyValue('--th-glass').trim());
   $$('[data-feat]').forEach((el) => el.classList.toggle('off', !feat(el.dataset.feat)));
   if ($('.info-slide.on')?.classList.contains('off')) showSlide(0);
   refreshTabs();
@@ -1093,6 +1096,8 @@ function applyFeatures(f) {
   window.dispatchEvent(new CustomEvent('island:features', { detail: state.features }));
 }
 bridge.onFeatures(applyFeatures);
+// a screen recorder is running (NVIDIA Instant Replay, OBS): a glass theme turns solid until it's gone
+bridge.onRecording((on) => document.body.classList.toggle('th-rec', !!on));
 bridge.onSaver((s) => showToast('saver', s.on ? 'Battery saver is on' : 'Battery saver is off', s.pct >= 0 ? `${s.pct}%` : '', 0, 3500));
 bridge.onVisibility((v) => { state.visible = !!v; });
 bridge.features().then(applyFeatures);

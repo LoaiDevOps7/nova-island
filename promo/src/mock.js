@@ -40,7 +40,7 @@
     tomorrow: { date: ymd(tomorrow), times: { fajr: '05:39', sunrise: '07:06', dhuhr: '12:39', asr: '15:48', maghrib: '18:12', isha: '19:30' }, hijri: '17 جُمادى الأولى 1448', method: 'Egyptian General Authority of Survey' },
   };
   const WEATHER = { city: 'Giza', temp: 24, code: 1, isDay: true, hi: 27, lo: 17 };
-  const CLIPS = ['Meeting moved to 3:30 PM — same room', 'https://nova.app/launch', 'Dynamic Nova makes Windows feel alive ✨'];
+  const CLIPS = ['Meeting moved to 3:30 PM — same room', 'https://nova.app/launch', 'Nova Island makes Windows feel alive'];
 
   window.__mock = { APPS, SHELF, PRAYER, WEATHER, CLIPS, features: {} };
   const group = (impl) => new Proxy({}, { get: (_t, k) => (k in impl ? impl[k] : () => later(null)) });

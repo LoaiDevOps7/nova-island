@@ -19,9 +19,44 @@ function nope(el) {
   el.classList.add('nope');
 }
 
+// ---- themes: a gallery of live previews (colors from ../themes.css) ----
+const THEMES = [
+  ['original', 'Original Nova', 'Liquid glass'],
+  ['bakka', 'Bakka', 'Deep green and gold'],
+  ['outline', 'Outline', 'Glass with a clean line'],
+  ['midnight', 'Midnight', 'Pure black'],
+  ['forest', 'Forest', 'Pine green'],
+  ['snow', 'Snow', 'Winter glass'],
+  ['cat', 'Cat', 'Little ears, paws for eyes'],
+  ['galaxy', 'Galaxy', 'Violet sky and stars'],
+  ['aurora', 'Aurora', 'Northern lights'],
+  ['ocean', 'Ocean', 'Deep blue waves'],
+  ['nody', 'Nody', 'Sakura pink, flowers for eyes'],
+  ['lava', 'Lava', 'Glowing embers'],
+  ['retro', 'Retro', 'Pixel green'],
+];
+const GLASS_THEMES = ['original', 'outline', 'snow'];
+$('#themes').innerHTML = THEMES.map(([id, name, desc]) => `
+  <button class="th-card" role="radio" data-theme="${id}" aria-checked="false">
+    <span class="th-stage">
+      <span class="th-pill"><i class="th-ear l"></i><i class="th-ear r"></i><b>9:41</b><span>☀ 24°</span></span>
+      <span class="th-pill wide"><i class="th-ear l"></i><i class="th-ear r"></i><i class="th-art"></i><span class="th-song">Golden Hour</span><i class="th-eq"><i></i><i></i><i></i><i></i></i></span>
+      <i class="th-check" aria-hidden="true"></i>
+    </span>
+    <span class="th-meta"><b>${name}</b><small>${desc}</small>${GLASS_THEMES.includes(id) ? '' : '<em>Lighter</em>'}</span>
+  </button>`).join('');
+$('#themes').addEventListener('click', (e) => {
+  const card = e.target.closest('.th-card');
+  if (!card || card.getAttribute('aria-checked') === 'true') return;
+  $$('.th-card').forEach((c) => c.setAttribute('aria-checked', String(c === card)));
+  api.setFeatures({ theme: card.dataset.theme });
+  saved(`${card.querySelector('b').textContent} theme`);
+});
+
 // ---- feature switches ----
 function showFeatures(f) {
   features = f;
+  $$('.th-card').forEach((c) => c.setAttribute('aria-checked', String(c.dataset.theme === (f.theme || 'original'))));
   $$('[data-feature]').forEach((el) => { el.checked = !!f[el.dataset.feature]; });
   // child settings show only while every switch they depend on is on ("!key": while it is off)
   $$('[data-needs]').forEach((el) => el.classList.toggle('off', !el.dataset.needs.split(' ').every((k) => (k[0] === '!' ? !f[k.slice(1)] : f[k]))));
@@ -270,7 +305,7 @@ showPage(remembered());
 
 // ---- search: rows from every page whose title matches ----
 // rows without a title (the city and calendar link fields) stay on their own page
-const items = [...$$('.row, .chip')];
+const items = [...$$('.row, .chip, .th-card')];
 const title = (el) => el.querySelector('b')?.textContent.toLowerCase() || '';
 function search(q) {
   q = q.trim().toLowerCase();
@@ -287,7 +322,7 @@ function search(q) {
   $$('.group').forEach((g) => {
     const head = g.querySelector('h2')?.textContent.toLowerCase().includes(q);
     if (head) g.querySelectorAll('.miss').forEach((el) => { if (title(el)) el.classList.remove('miss'); });
-    g.classList.toggle('empty', !g.querySelector('.row:not(.miss):not(.off), .chip:not(.miss)'));
+    g.classList.toggle('empty', !g.querySelector('.row:not(.miss):not(.off), .chip:not(.miss), .th-card:not(.miss)'));
   });
   let any = false;
   $$('.page').forEach((p) => {

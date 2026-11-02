@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('nova', {
   onFeatures: on('features'),
   features: () => ipcRenderer.invoke('island-features'),
   onSaver: on('saver'),
+  onRecording: on('recording'),
   setFeatures: (patch) => ipcRenderer.send('features-set', patch),
   openSettings: () => ipcRenderer.send('open-settings'),
   ready: () => ipcRenderer.send('island-ready'),

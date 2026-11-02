@@ -320,8 +320,7 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true);
   win.setIgnoreMouseEvents(true);
-  // keep the island out of screen captures so the glass backdrop shows what is behind it
-  win.setContentProtection(true);
+  updateProtection();
   placeWindow();
   win.webContents.on('preload-error', (_e, p, err) => console.error('[preload-error]', p, err));
   win.webContents.on('console-message', (e, level, message, line, source) => {
@@ -391,6 +390,12 @@ function startMedia() {
         if ('omni' in data) onOmni(data.omni);
         if ('browser' in data) onBrowser(data.browser);
         if (typeof data.bat === 'number') onBattery(data.bat, data.ac !== false);
+        if (typeof data.rec === 'boolean' && data.rec !== recording) {
+          recording = data.rec;
+          log.info(`screen recorder ${recording ? 'running: glass paused' : 'gone: glass back'}`);
+          send('recording', recording);
+          updateProtection();
+        }
         if (typeof data.fs === 'boolean' && data.fs !== fullscreenHidden) {
           fullscreenHidden = data.fs;
           updateVisibility();
@@ -582,7 +587,7 @@ function scheduleCapture(ms) {
 }
 async function captureBackdrop() {
   // skipped while dragging: a capture blocks the main thread and makes the move stutter
-  if (capturing || drag || screenLocked || !win || win.isDestroyed() || !win.isVisible() || perf().noBlur) return;
+  if (capturing || drag || screenLocked || !win || win.isDestroyed() || !win.isVisible() || !glassLive()) return;
   capturing = true;
   try {
     const display = screen.getDisplayMatching(win.getBounds());
@@ -621,6 +626,28 @@ async function captureBackdrop() {
   }
 }
 
+// --- the glass and screen recorders ---
+// The glass is a capture of the screen behind the island, so the island asks Windows to leave it
+// out of captures (or it would show up inside its own glass). NVIDIA reads that request as protected
+// video and turns Instant Replay off. So it's asked only while it's needed: a glass theme, with the
+// glass on, and no screen recorder running. While one runs, a glass theme turns solid in its own
+// colors and comes back when the recorder is gone; solid themes never ask at all.
+let recording = false;
+const glassWanted = () => !perf().noBlur && !features.SOLID_THEMES.includes(features.get().theme);
+const glassLive = () => glassWanted() && !recording;
+let protectedNow = null;
+function updateProtection() {
+  if (!win || win.isDestroyed()) return;
+  const on = glassLive();
+  if (on === protectedNow) return;
+  protectedNow = on;
+  win.setContentProtection(on);
+  if (on) {
+    lastCaptureKey = '';
+    scheduleCapture(150);
+  }
+}
+
 // --- performance options and the battery saver ---
 // The user's own switches (Remove blur, Remove animations, Freeze glass) slow the cursor poll,
 // the CPU/RAM poll and the screen capture. The battery saver turns all three on while on battery
@@ -642,6 +669,7 @@ function applyPerf() {
   if (key === perfKey) return;
   perfKey = key;
   system.setStatsEvery(perfSlow() ? 5000 : 2000);
+  updateProtection();
   send('features', islandFeatures());
   lastCaptureKey = '';
   scheduleCapture(300);
@@ -962,6 +990,7 @@ const SUPPORT_LINKS = {
   kofi: 'https://ko-fi.com/binamer',
   instapay: 'https://ipn.eg/S/binamerbm/instapay/38txJO',
   github: 'https://github.com/NOVA-TECH-KIT/nova-island',
+  facebook: 'https://www.facebook.com/nova4kit/',
 };
 ipcMain.on('open-support', (_e, key) => {
   if (Object.hasOwn(SUPPORT_LINKS, key)) shell.openExternal(SUPPORT_LINKS[key]);
@@ -1081,6 +1110,8 @@ features.onChange((f) => {
   downloads.setFolders(f.folderDownloads);
   privacy.setEnabled(f.privacyDots);
   network.setEnabled(f.netToasts);
+  // a glass or a solid theme: ask Windows to hide the island from captures only for glass
+  updateProtection();
   if (f.news !== newsOn) {
     newsOn = f.news;
     news.setEnabled(newsOn);

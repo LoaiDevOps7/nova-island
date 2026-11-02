@@ -135,6 +135,20 @@ static class Win {
 
   public static IntPtr ForegroundHandle() { return GetForegroundWindow(); }
 
+  // a screen recorder running: NVIDIA's capture helper (Instant Replay / recording), OBS,
+  // Streamlabs. While one runs, the island doesn't ask Windows to hide it from captures (that
+  // request makes NVIDIA turn Instant Replay off, as if protected video were on screen).
+  static readonly string[] Recorders = { "nvsphelper64", "nvsphelper", "obs64", "obs32", "obs", "Streamlabs OBS", "Streamlabs Desktop" };
+  public static bool RecorderRunning() {
+    foreach (var name in Recorders) {
+      var ps = System.Diagnostics.Process.GetProcessesByName(name);
+      bool any = ps.Length > 0;
+      foreach (var p in ps) p.Dispose();
+      if (any) return true;
+    }
+    return false;
+  }
+
   // the browser window in front (any browser), for "Stay in place": the island goes see-through
   // over it. JSON in physical pixels, or "null".
   static readonly string[] Browsers = { "chrome", "msedge", "brave", "opera", "vivaldi", "firefox" };
@@ -372,6 +386,7 @@ static class Program {
     int thumbTries = 0, loop = 0;
     bright = Brightness.Get();
     bool brightOk = bright >= 0;
+    bool rec = false;
     var next = DateTime.UtcNow;
 
     while (true) {
@@ -426,6 +441,8 @@ static class Program {
       try { long seq = Win.ClipboardSeq(); o.Add("clip", (double)seq).Add("clipPriv", Win.ClipboardPrivate(seq)); } catch { }
       try { o.Add("idle", Win.IdleSeconds()); } catch { }
       try { int pct; bool ac; Win.Battery(out pct, out ac); o.Add("bat", pct).Add("ac", ac); } catch { }
+      if (loop % 4 == 1) { try { rec = Win.RecorderRunning(); } catch { } }
+      o.Add("rec", rec);
       string fgProc = "";
       try { string t; Win.Foreground(out fgProc, out t); o.Add("fgProc", fgProc).Add("fgTitle", t); } catch { }
       try { o.Raw("omni", AddressBar.Json(Win.ForegroundHandle(), fgProc, Win.IsFullscreen())); } catch { o.Raw("omni", "null"); }

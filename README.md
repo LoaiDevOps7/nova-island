@@ -38,6 +38,11 @@ Progress, speed and time left while you work, with IDM Nova — pause, resume or
 
 ![Downloads](promo/en/04-downloads.png)
 
+### Make it yours
+13 free themes in Settings → Themes, from liquid glass to pure black, sakura pink and pixel green. None of them makes Nova heavier, and the solid ones are even lighter.
+
+![Themes](promo/en/08-themes.png)
+
 ### Smart about what you do
 Copy a link, a sum or a color and the island knows what to do with it. It also lets you know when an app turns on your mic or camera.
 

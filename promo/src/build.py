@@ -48,6 +48,15 @@ SCENES = {
         dict(x=82, y=465, s=1.15, q='state=prayer',
              card=(90, 430, 720, 420, 'مواقيت الصلاة: <b>عدّ تنازلي وتنبيه قبل الأذان</b>')),
     ]},
+    # Instagram portrait (1080x1350): the Quran Radio plugin
+    'ar-radio': {
+        'size': (1080, 1350),
+        'islands': [
+            dict(x=540 - 320 * 1.62, y=440, s=1.62, q='state=radio'),
+            dict(x=540 - 320 * 1.9, y=905, s=1.9, q='state=radio-pill',
+                 card=(70, 880, 940, 190, 'وهي مصغّرة: <b>الإذاعة شغّالة بجانب موعد الصلاة</b>')),
+        ],
+    },
     '05-control': {
         'islands': [dict(x=W - WIN_W * 2.0, y=220, s=2.0, q='state=idle&v=1&side=right&ay=160')],
         'prefs': dict(x=560, y=150, w=760, h=560, s=1.25, q='sec=faith'),
@@ -150,10 +159,10 @@ def scene_page(name, cfg, bd=None):
     return f'http://127.0.0.1:{PORT}/promo/src/scenes/{page}'
 
 
-def shoot(url, out, scale, profile, budget=12000):
+def shoot(url, out, scale, profile, budget=12000, size=(W, H)):
     subprocess.run([
         EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars', f'--user-data-dir={profile}',
-        f'--force-device-scale-factor={scale}', f'--window-size={W},{H}', f'--virtual-time-budget={budget}',
+        f'--force-device-scale-factor={scale}', f'--window-size={size[0]},{size[1]}', f'--virtual-time-budget={budget}',
         f'--screenshot={out}', url,
     ], check=True, capture_output=True, timeout=120)
 
@@ -162,11 +171,13 @@ def build(name, cfg, profile):
     # 1) the scene without islands, to crop what each island sits on
     bg = WORK / f'{name}-bg.png'
     budget = cfg.get('budget', 12000)
-    shoot(scene_page(name, cfg) + '?bg=1', bg, 1, profile, budget)
+    size = cfg.get('size', (W, H))
+    shoot(scene_page(name, cfg) + '?bg=1', bg, 1, profile, budget, size)
     shot = Image.open(bg).convert('RGB')
     bds = []
     for i, isl in enumerate(cfg['islands']):
         x, y, s = isl['x'], isl['y'], isl['s']
+        # a frame wider than the canvas: what's outside it is never behind the island itself
         crop = shot.crop((round(x), round(y), round(x + WIN_W * s), round(y + WIN_H * s))).resize((WIN_W, WIN_H), Image.LANCZOS)
         fn = f'{name}-bd{i}.png'
         crop.save(WORK / fn)
@@ -174,8 +185,13 @@ def build(name, cfg, profile):
     # 2) the full scene at 2x
     final = OUT / 'en' / f'{name[3:]}.png' if name.startswith('en-') else OUT / f'{name}.png'
     final.parent.mkdir(exist_ok=True)
-    shoot(scene_page(name, cfg, bds), final, 2, profile, budget)
+    shoot(scene_page(name, cfg, bds), final, 2, profile, budget, size)
     print('wrote', final, Image.open(final).size)
+    # a post (Instagram) also gets its exact size
+    if 'size' in cfg:
+        post = final.with_name(f'{final.stem}-{size[0]}x{size[1]}.png')
+        Image.open(final).convert('RGB').resize(size, Image.LANCZOS).save(post)
+        print('wrote', post, size)
 
 
 def main():

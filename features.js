@@ -41,6 +41,7 @@ const DEFAULTS = {
   batterySaver: false,
   batterySaverAt: 20, // percent
   news: true, // plugins, updates and news from the Nova team (news.json on GitHub)
+  theme: 'original', // the island's look (themes.css)
   // System tab
   clipboardHistory: true,
   // copied image / screenshot -> toast; on the Shelf by itself for a while, or "Add to Shelf"
@@ -88,6 +89,13 @@ const RANGES = {
   batterySaverAt: [10, 100],
 };
 
+// settings that are one of a fixed list
+const CHOICES = {
+  theme: ['original', 'bakka', 'outline', 'midnight', 'forest', 'snow', 'cat', 'galaxy', 'aurora', 'ocean', 'nody', 'lava', 'retro'],
+};
+// themes without glass: no screen capture behind them
+const SOLID_THEMES = ['bakka', 'midnight', 'forest', 'cat', 'galaxy', 'aurora', 'ocean', 'nody', 'lava', 'retro'];
+
 let values = { ...DEFAULTS, ...pick(settings.load('features.json', {})) };
 const listeners = [];
 
@@ -96,7 +104,9 @@ function pick(obj) {
   const out = {};
   for (const [k, v] of Object.entries(obj || {})) {
     if (!(k in DEFAULTS)) continue;
-    if (RANGES[k]) {
+    if (CHOICES[k]) {
+      if (CHOICES[k].includes(v)) out[k] = v;
+    } else if (RANGES[k]) {
       if (Number.isFinite(v)) out[k] = Math.min(Math.max(Math.round(v), RANGES[k][0]), RANGES[k][1]);
     } else if (typeof v === 'boolean') out[k] = v;
   }
@@ -124,4 +134,4 @@ function reset() {
 
 const onChange = (fn) => listeners.push(fn);
 
-module.exports = { get, set, reset, onChange, DEFAULTS };
+module.exports = { get, set, reset, onChange, DEFAULTS, SOLID_THEMES };

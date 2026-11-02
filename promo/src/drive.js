@@ -22,6 +22,8 @@
     side: q.get('side') || 'right',
   });
   if (q.get('bd')) fire('onBackdrop', q.get('bd'));
+  if (q.get('theme')) applyFeatures({ ...state.features, theme: q.get('theme'), ...(q.get('clock') === '1' ? { slideStats: false, slidePrayer: false } : {}) });
+  if (q.get('rec') === '1') document.body.classList.add('th-rec');
   fire('onStats', { cpu: 0.27, ram: 0.54, ramUsed: 8.6e9, ramTotal: 16e9 });
   fire('onWeather', window.__mock.WEATHER);
   fire('onClipboard', window.__mock.CLIPS);
@@ -67,7 +69,11 @@
       }
       break;
     }
-    case 'prayer': open('prayer'); break;
+    case 'prayer':
+      fire('onPrayer', window.__mock.PRAYER);
+      await wait(1100);
+      open('prayer');
+      break;
     case 'apps': open('apps'); break;
     case 'system': open('system'); break;
     case 'shelf': open('shelf'); break;
@@ -111,6 +117,24 @@
       await wait(1100);
       if (state === 'ramadan-tab') open('prayer');
       else showSlide([...$$('.info-slide')].filter((s) => !s.hidden && !s.classList.contains('off')).indexOf($('.rmd-slide')));
+      break;
+    }
+    case 'radio':
+    case 'radio-pill': {
+      // Quran Radio (plugin), shown live (the stream itself doesn't play in the headless shot)
+      fire('onPlugins', [{ id: 'quran-radio', kind: 'radio', name: 'Quran Radio', values: { station: 'cairo', volume: 70, pauseAtPrayer: false },
+        stations: [{ id: 'cairo', name: 'إذاعة القرآن الكريم من القاهرة', url: 'https://stream.radiojar.com/8s5u5tpdtwzuv', group: 'إذاعات' }] }]);
+      fire('onPrayer', window.__mock.PRAYER);
+      await wait(300);
+      $('#radio').classList.add('playing', 'live');
+      $('#rd-eyebrow').textContent = 'بث مباشر';
+      $('#rd-status').textContent = 'إذاعة رسمية';
+      island.classList.add('radio-on');
+      if (state === 'radio') open('radio');
+      else {
+        await wait(900);
+        showSlide([...$$('.info-slide')].filter((s) => !s.hidden && !s.classList.contains('off')).indexOf($('.pr-slide')));
+      }
       break;
     }
     case 'eyes':

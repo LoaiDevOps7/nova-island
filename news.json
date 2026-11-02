@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "qr-nova-launch",
+    "type": "news",
+    "title": "New from Nova: QR Nova",
+    "body": "Beautiful QR codes in seconds. Free and open source. Click to download.",
+    "link": "https://github.com/NOVA-TECH-KIT/qr-nova/releases/latest",
+    "sig": "UssCDvPMYTO1wAENYCkrJ2sz+BRzO39cBH3RSKu9ez6G0PuDWt/vfb3tNWSAkmLh3ylj/j6CARhHSFwwuJk7AQ=="
+  }
+]

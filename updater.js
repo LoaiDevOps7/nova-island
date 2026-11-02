@@ -48,7 +48,8 @@ function retrySoon() {
 
 function start(sendFn, on) {
   send = sendFn;
-  if (!app.isPackaged) return;
+  // the Microsoft Store version is updated by the Store
+  if (!app.isPackaged || process.windowsStore) return;
   ({ autoUpdater: updater } = require('electron-updater'));
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = true;

@@ -136,6 +136,9 @@ function showGeneral(g) {
   $$('[data-general]').forEach((el) => { el.checked = !!g[el.dataset.general]; });
   $$('[data-orient]').forEach((b) => b.setAttribute('aria-checked', String((b.dataset.orient === 'v') === !!g.vertical)));
   if (g.version) $('#version').textContent = `Version ${g.version}`;
+  // the Store version: Windows runs the startup entry and the Store installs updates
+  $('#startup-row').hidden = $('#update-row').hidden = !!g.store;
+  $('#startup-store-row').hidden = !g.store;
   // battery saver: off on a PC without a battery; says when it is on right now
   const noBattery = g.battery < 0;
   $('#saver-row input').disabled = noBattery;

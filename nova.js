@@ -874,13 +874,19 @@ function shortcutOptions() {
   };
 }
 
+// The Microsoft Store version starts with Windows through its package (a startup task, on by
+// default), which the user turns off in Windows Settings > Apps > Startup; Nova can't change it.
+const STORE = !!process.windowsStore;
+
 // Installed builds use the system login item; a dev run ("electron.exe <folder>") keeps the
 // shortcut in the Startup folder, since the login item would only start bare Electron.
 function startsWithWindows() {
+  if (STORE) return true;
   return app.isPackaged ? app.getLoginItemSettings().openAtLogin : fs.existsSync(startupLink());
 }
 
 function setStartWithWindows(on) {
+  if (STORE) return true;
   if (app.isPackaged) {
     app.setLoginItemSettings({ openAtLogin: on });
     return on;
@@ -940,12 +946,12 @@ function appMenu() {
       click: (item) => setVertical(item.checked),
     },
     { label: 'Reset position', click: resetPosition },
-    {
+    ...(STORE ? [] : [{
       label: 'Start with Windows',
       type: 'checkbox',
       checked: startsWithWindows(),
       click: (item) => { setStartWithWindows(item.checked); notifyGeneral(); },
-    },
+    }]),
     { label: 'Expand / collapse   Ctrl+Alt+I', click: () => send('toggle') },
     { label: 'Settings…', click: () => prefsWindow.open() },
     { type: 'separator' },
@@ -960,6 +966,7 @@ ipcMain.on('context-menu', () => appMenu().popup({ window: win }));
 function generalState() {
   return {
     shown: !userHidden, vertical: !!prefs.vertical, startWithWindows: startsWithWindows(), version: app.getVersion(),
+    store: STORE,
     battery: battery.pct, saver: saverOn,
   };
 }
@@ -998,6 +1005,8 @@ const SUPPORT_LINKS = {
   // Settings > More by Nova
   qrnova: 'https://github.com/NOVA-TECH-KIT/qr-nova/releases/latest',
   'qrnova-src': 'https://github.com/NOVA-TECH-KIT/qr-nova',
+  // Settings > General, Store version: Windows' own startup apps page
+  startupapps: 'ms-settings:startupapps',
 };
 ipcMain.on('open-support', (_e, key) => {
   if (Object.hasOwn(SUPPORT_LINKS, key)) shell.openExternal(SUPPORT_LINKS[key]);
@@ -1159,6 +1168,7 @@ function buildTray() {
 // The installed app replaces a dev setup's Startup-folder shortcut with the system login item.
 // Builds from before the rename ("Dynamic Nova") left their own login item and shortcuts.
 function migrateStartup() {
+  if (STORE) return;
   const startup = path.dirname(startupLink());
   const oldLinks = [path.join(startup, 'Dynamic Nova.lnk'), path.join(app.getPath('desktop'), 'Dynamic Nova.lnk')];
   let wasOn = fs.existsSync(oldLinks[0]);

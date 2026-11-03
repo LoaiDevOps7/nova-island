@@ -15,5 +15,13 @@
     "link": "nova://plugins/quran-radio",
     "minVersion": "1.5.0",
     "sig": "n7q54rc89XzdNnwn4tjBb2rh3A/jbjyg5HOQXtHMPXuY4DgOEvP84t05+GUlM6L2qtW9xnvD5l4jYBCuFWlbBQ=="
+  },
+  {
+    "id": "telegram-channel",
+    "type": "news",
+    "title": "Join Nova on Telegram",
+    "body": "Get new updates and features first. Click, then press \"Join · Telegram\" at the top of the page.",
+    "link": "https://github.com/NOVA-TECH-KIT/nova-island",
+    "sig": "Qn/JH0cJ/aZdktAfKsL0c3GE7z6M8Jq4nTU5aMQPRQoB6EnVUdm5mKrbz1A3+meIKtrYs+qY0+LMrB8iOf9lDA=="
   }
 ]

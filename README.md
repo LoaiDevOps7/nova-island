@@ -6,7 +6,7 @@
 
 Your music, apps, files and alerts in one glass capsule at the top of your screen — with Nova, a little companion who keeps you company.
 
-[**Download for Windows**](../../releases/latest) · Free and open source (GPL v3)
+[**Download for Windows**](https://nova-tech-kit.github.io/nova-island/#download) · [Microsoft Store](https://apps.microsoft.com/detail/9PHV3N1V2H7M) · Free and open source (GPL v3)
 
 [![Latest release](https://img.shields.io/github/v/release/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Version&color=3b82f6&labelColor=1c1a2e)](../../releases/latest)
 [![Stars](https://img.shields.io/github/stars/NOVA-TECH-KIT/nova-island?style=for-the-badge&label=Stars&color=f472b6&labelColor=1c1a2e&logo=github&logoColor=white)](../../stargazers)
@@ -56,8 +56,8 @@ Turn on only what you need from one simple settings window. Vertical on the scre
 
 ## Install
 
-1. Download **Nova Island Setup** from the [latest release](../../releases/latest).
-2. Run it. Windows may show "Windows protected your PC" because the app is not code-signed yet — choose **More info → Run anyway**.
+1. Download **Nova Island** from [the website](https://nova-tech-kit.github.io/nova-island/#download), or get it from the [Microsoft Store](https://apps.microsoft.com/detail/9PHV3N1V2H7M).
+2. Run it. With the direct download, Windows may show "Windows protected your PC" because the app is not code-signed yet — choose **More info → Run anyway**. The Store version doesn't show it.
 3. The island appears at the top of your screen. Press **Ctrl + Alt + I** to open it.
 
 Requires Windows 10 or 11 (64-bit).
